@@ -1,6 +1,7 @@
-import { useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Storefront } from './components/store/Storefront';
 import { Assistant } from './components/assistant/Assistant';
+import { ThinkingGallery } from './components/assistant/thinking/Gallery';
 
 /**
  * The prototype is presented inside a phone-sized frame so it reads correctly
@@ -9,6 +10,16 @@ import { Assistant } from './components/assistant/Assistant';
  */
 export default function App() {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [hash, setHash] = useState(window.location.hash);
+
+  useEffect(() => {
+    const onHash = () => setHash(window.location.hash);
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, []);
+
+  // A review surface for comparing thinking animations, not part of the journey.
+  if (hash === '#thinking') return <ThinkingGallery />;
 
   return (
     <div className="grid min-h-dvh place-items-center bg-[#e9e6e1] p-6">
