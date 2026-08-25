@@ -3,47 +3,106 @@ import { easing } from '../../../motion/motion';
 
 /**
  * ============================================================================
- * THINKING ANIMATIONS — five variations
+ * THINKING ANIMATIONS — five variations on a morphing line
  * ============================================================================
  *
- * What the assistant shows while it works. Five different directions, all
- * drawn in ink on the console's own surface, all sized to the same 90×48 box.
+ * What the assistant shows while it works.
  *
- * Pick one by changing `THINKING` at the bottom of this file.
+ * All five share one idea: **the line itself changes shape.** It is never a
+ * static track with something travelling along it. A straight line bends into
+ * a curve, turns, and straightens again — while light runs through it. The
+ * shape change and the travel happen at the same time.
+ *
+ * Each is drawn in ink at the size it appears in the console.
  * Compare them side by side at  /#thinking
+ * Pick one by changing `THINKING` at the bottom of this file.
  *
  * The house rule applies to all of them: nothing snaps, nothing bounces,
  * nothing demands attention. This runs for a second or two and then leaves.
  */
 
-const BOX = 'relative flex h-12 w-[90px] items-center justify-center text-[var(--ink-soft)]';
+const BOX = 'relative flex h-12 w-[110px] items-center justify-center text-[var(--ink-soft)]';
 
-/** A fine curb chain, drawn as one continuous line. */
-const CHAIN = 'M3 15c5-11 11 11 16 0s11 11 16 0 11 11 16 0 11 11 16 0';
+/** The travelling light: one short dash chasing its way along the path. */
+const DASH = '14 150';
 
 /* ==========================================================================
- * 1. THREAD
- * A fine chain drawing itself, holding, then releasing. The most literal
- * jewelry reference of the five, and the quietest.
+ * 1. ARC
+ * A straight line bows into a half circle, flattens, then bows the other
+ * way. The most literal reading of the direction.
  * ========================================================================== */
 
-export function Thread() {
+export function Arc() {
+  const flat = 'M8 24 C32 24 44 24 55 24 C66 24 78 24 102 24';
+  const over = 'M8 24 C8 2 32 2 55 2 C78 2 102 2 102 24';
+  const under = 'M8 24 C8 46 32 46 55 46 C78 46 102 46 102 24';
+
   return (
     <div className={BOX}>
-      <svg width="76" height="30" viewBox="0 0 76 30" fill="none">
-        {/* The chain it draws over, held faint */}
-        <path d={CHAIN} stroke="currentColor" strokeWidth="1.1" strokeOpacity="0.12" strokeLinecap="round" />
+      <svg width="110" height="48" viewBox="0 0 110 48" fill="none">
         <motion.path
-          d={CHAIN}
           stroke="currentColor"
-          strokeWidth="1.1"
+          strokeWidth="1.2"
           strokeLinecap="round"
-          strokeDasharray="120"
-          animate={{ strokeDashoffset: [120, 0, 0, -120] }}
+          strokeOpacity="0.18"
+          animate={{ d: [flat, over, flat, under, flat] }}
+          transition={{ duration: 4.4, ease: easing.refined, repeat: Infinity }}
+        />
+        <motion.path
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeDasharray={DASH}
+          animate={{
+            d: [flat, over, flat, under, flat],
+            strokeDashoffset: [164, 0, -164, -328, -492],
+          }}
+          transition={{ duration: 4.4, ease: easing.even, repeat: Infinity }}
+        />
+      </svg>
+    </div>
+  );
+}
+
+/* ==========================================================================
+ * 2. CLASP
+ * The line closes into a ring, holds for a beat, then opens back out. Light
+ * runs the whole time, so it reads as a chain finding its clasp.
+ * ========================================================================== */
+
+export function Clasp() {
+  const open = 'M12 24 C26 24 40 24 55 24 C70 24 84 24 98 24';
+  const ring = 'M55 5 C68 5 79 13 79 24 C79 35 68 43 55 43 C42 43 31 35 31 24 C31 13 42 5 55 5';
+
+  return (
+    <div className={BOX}>
+      <svg width="110" height="48" viewBox="0 0 110 48" fill="none">
+        <motion.path
+          stroke="currentColor"
+          strokeWidth="1.2"
+          strokeLinecap="round"
+          strokeOpacity="0.18"
+          animate={{ d: [open, ring, ring, open, open] }}
           transition={{
-            duration: 2.8,
+            duration: 4.6,
+            ease: easing.refined,
+            times: [0, 0.3, 0.6, 0.88, 1],
+            repeat: Infinity,
+          }}
+        />
+        <motion.path
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          strokeDasharray={DASH}
+          animate={{
+            d: [open, ring, ring, open, open],
+            strokeDashoffset: [164, 0, -164, -328, -492],
+          }}
+          transition={{
+            duration: 4.6,
             ease: easing.even,
-            times: [0, 0.45, 0.62, 1],
+            times: [0, 0.3, 0.6, 0.88, 1],
             repeat: Infinity,
           }}
         />
@@ -53,49 +112,44 @@ export function Thread() {
 }
 
 /* ==========================================================================
- * 2. FACET
- * A cut stone turning slowly, with light moving across its face. The most
- * "fine jewelry" of the five and the most expensive-feeling.
+ * 3. RIBBON
+ * The line runs flat, gathers into a wave, and settles flat again — tilting
+ * as it goes, so it reads as a length of chain drawn through a hand.
  * ========================================================================== */
 
-export function Facet() {
+export function Ribbon() {
+  const flat = 'M8 24 C26 24 40 24 55 24 C70 24 84 24 102 24';
+  const wave = 'M8 24 C26 4 40 44 55 24 C70 4 84 44 102 24';
+  const deep = 'M8 24 C26 44 40 4 55 24 C70 44 84 4 102 24';
+
   return (
     <div className={BOX}>
       <motion.svg
-        width="42"
-        height="36"
-        viewBox="0 0 42 36"
+        width="110"
+        height="48"
+        viewBox="0 0 110 48"
         fill="none"
-        style={{ transformPerspective: 420, rotateX: 8 }}
-        animate={{ rotateY: [-52, 52, -52] }}
-        transition={{ duration: 4.2, ease: easing.even, repeat: Infinity }}
+        animate={{ rotate: [0, 5, -5, 0] }}
+        transition={{ duration: 5.2, ease: easing.even, repeat: Infinity }}
       >
-        <defs>
-          <linearGradient id="facet-light" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="currentColor" stopOpacity="0.05" />
-            <motion.stop
-              offset="50%"
-              stopColor="currentColor"
-              stopOpacity="0.35"
-              animate={{ offset: ['0%', '100%'] }}
-              transition={{ duration: 2.2, ease: easing.even, repeat: Infinity }}
-            />
-            <stop offset="100%" stopColor="currentColor" stopOpacity="0.05" />
-          </linearGradient>
-        </defs>
-        {/* A brilliant cut seen from the side: table, crown, girdle, pavilion */}
-        <path
-          d="M13 2h16l9 10-17 22L4 12Z"
-          fill="url(#facet-light)"
+        <motion.path
           stroke="currentColor"
-          strokeWidth="1.1"
-          strokeLinejoin="round"
+          strokeWidth="1.2"
+          strokeLinecap="round"
+          strokeOpacity="0.16"
+          animate={{ d: [flat, wave, deep, wave, flat] }}
+          transition={{ duration: 3.6, ease: easing.even, repeat: Infinity }}
         />
-        <path
-          d="M4 12h34M13 2l4 10M29 2l-4 10M17 12l4 22M25 12l-4 22"
+        <motion.path
           stroke="currentColor"
-          strokeWidth="0.7"
-          strokeOpacity="0.4"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeDasharray={DASH}
+          animate={{
+            d: [flat, wave, deep, wave, flat],
+            strokeDashoffset: [164, 0, -164, -328, -492],
+          }}
+          transition={{ duration: 3.6, ease: easing.even, repeat: Infinity }}
         />
       </motion.svg>
     </div>
@@ -103,122 +157,137 @@ export function Facet() {
 }
 
 /* ==========================================================================
- * 3. ORBIT
- * Three small stones circling a still centre, each on its own path at its
- * own speed. The most restrained of the five.
+ * 4. PENDULUM
+ * A short arc swinging on its centre while its curve deepens and eases.
+ * The most restrained — nothing crosses the screen, it only turns.
  * ========================================================================== */
 
-export function Orbit() {
-  const rings = [
-    { r: 9, duration: 2.6, size: 2.6, opacity: 1, from: 0 },
-    { r: 15, duration: 4.0, size: 2.2, opacity: 0.65, from: 140 },
-    { r: 21, duration: 5.8, size: 1.8, opacity: 0.4, from: 260 },
-  ];
+export function Pendulum() {
+  const shallow = 'M26 30 C40 20 70 20 84 30';
+  const deep = 'M26 36 C40 6 70 6 84 36';
 
   return (
     <div className={BOX}>
-      <svg width="52" height="52" viewBox="-26 -26 52 52" fill="none">
-        <circle r="1.8" fill="currentColor" />
-        {rings.map((ring, i) => (
-          <g key={i}>
-            <circle r={ring.r} stroke="currentColor" strokeWidth="0.5" strokeOpacity="0.14" />
-            <motion.g
-              animate={{ rotate: [ring.from, ring.from + 360] }}
-              transition={{ duration: ring.duration, ease: 'linear', repeat: Infinity }}
-              style={{ originX: 0, originY: 0 }}
-            >
-              <circle cx={ring.r} cy={0} r={ring.size} fill="currentColor" fillOpacity={ring.opacity} />
-            </motion.g>
-          </g>
-        ))}
-      </svg>
-    </div>
-  );
-}
-
-/* ==========================================================================
- * 4. SHEEN
- * Light travelling along a polished edge. Nothing moves except the
- * highlight — the most minimal option, and the one that reads best small.
- * ========================================================================== */
-
-export function Sheen() {
-  return (
-    <div className={BOX}>
-      <div className="relative h-[3px] w-[76px] overflow-hidden rounded-full bg-current opacity-15" />
-      <motion.div
-        className="absolute h-[3px] w-[26px] rounded-full"
-        style={{
-          background:
-            'linear-gradient(90deg, transparent, var(--ink-soft) 45%, var(--ink-soft) 55%, transparent)',
-        }}
-        animate={{ x: [-44, 44] }}
-        transition={{ duration: 1.9, ease: easing.even, repeat: Infinity, repeatDelay: 0.25 }}
-      />
-    </div>
-  );
-}
-
-/* ==========================================================================
- * 5. BLOOM
- * Rings opening outward from a single point and fading. The warmest and
- * most ambient of the five — closer to an aura than a loading indicator.
- * ========================================================================== */
-
-export function Bloom() {
-  return (
-    <div className={BOX}>
-      <span className="absolute h-[5px] w-[5px] rounded-full bg-current" />
-      {[0, 0.7, 1.4].map((delay) => (
-        <motion.span
-          key={delay}
-          className="absolute rounded-full border-[1.2px] border-current"
-          style={{ width: 14, height: 14 }}
-          animate={{ scale: [0.8, 3.4], opacity: [0.75, 0] }}
-          transition={{ duration: 2.1, ease: easing.refined, repeat: Infinity, delay }}
+      <motion.svg
+        width="110"
+        height="48"
+        viewBox="0 0 110 48"
+        fill="none"
+        style={{ originX: '55px', originY: '24px' }}
+        animate={{ rotate: [-36, 36, -36] }}
+        transition={{ duration: 3.4, ease: easing.refined, repeat: Infinity }}
+      >
+        <motion.path
+          stroke="currentColor"
+          strokeWidth="1.3"
+          strokeLinecap="round"
+          strokeOpacity="0.2"
+          animate={{ d: [shallow, deep, shallow] }}
+          transition={{ duration: 1.7, ease: easing.even, repeat: Infinity }}
         />
-      ))}
+        <motion.path
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          strokeDasharray="12 90"
+          animate={{ d: [shallow, deep, shallow], strokeDashoffset: [102, 0] }}
+          transition={{ duration: 1.7, ease: easing.even, repeat: Infinity }}
+        />
+      </motion.svg>
     </div>
   );
 }
 
 /* ==========================================================================
- * THE ONE IN USE
- * Change this to switch what the console shows while the assistant works.
+ * 5. LOOP
+ * The line folds over itself into a knot, turns, then unfolds. The most
+ * sculptural, and the closest to the brand's own interlocking forms.
+ * ========================================================================== */
+
+export function Loop() {
+  const straight = 'M10 24 C30 24 44 24 55 24 C66 24 80 24 100 24';
+  const knot = 'M10 24 C34 24 33 7 55 7 C77 7 76 41 55 41 C34 41 33 24 100 24';
+
+  return (
+    <div className={BOX}>
+      <motion.svg
+        width="110"
+        height="48"
+        viewBox="0 0 110 48"
+        fill="none"
+        animate={{ rotate: [0, 180, 360] }}
+        transition={{ duration: 6.4, ease: easing.refined, repeat: Infinity }}
+      >
+        <motion.path
+          stroke="currentColor"
+          strokeWidth="1.2"
+          strokeLinecap="round"
+          strokeOpacity="0.16"
+          animate={{ d: [straight, knot, knot, straight] }}
+          transition={{
+            duration: 4.2,
+            ease: easing.refined,
+            times: [0, 0.35, 0.65, 1],
+            repeat: Infinity,
+          }}
+        />
+        <motion.path
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeDasharray={DASH}
+          animate={{
+            d: [straight, knot, knot, straight],
+            strokeDashoffset: [200, 0, -200, -400],
+          }}
+          transition={{
+            duration: 4.2,
+            ease: easing.even,
+            times: [0, 0.35, 0.65, 1],
+            repeat: Infinity,
+          }}
+        />
+      </motion.svg>
+    </div>
+  );
+}
+
+/* ==========================================================================
+ * THE SET
  * ========================================================================== */
 
 export const thinkingVariations = [
   {
-    id: 'thread',
-    name: 'Thread',
-    note: 'A fine chain drawing itself, holding, then releasing.',
-    Component: Thread,
+    id: 'arc',
+    name: 'Arc',
+    note: 'A straight line bows into a half circle, flattens, then bows the other way.',
+    Component: Arc,
   },
   {
-    id: 'facet',
-    name: 'Facet',
-    note: 'A cut stone turning slowly, light moving across its face.',
-    Component: Facet,
+    id: 'clasp',
+    name: 'Clasp',
+    note: 'The line closes into a ring, holds a beat, then opens back out.',
+    Component: Clasp,
   },
   {
-    id: 'orbit',
-    name: 'Orbit',
-    note: 'Three small stones circling a still centre, each at its own speed.',
-    Component: Orbit,
+    id: 'ribbon',
+    name: 'Ribbon',
+    note: 'A length of chain gathering into a wave and settling flat, tilting as it goes.',
+    Component: Ribbon,
   },
   {
-    id: 'sheen',
-    name: 'Sheen',
-    note: 'Light travelling along a polished edge. Nothing else moves.',
-    Component: Sheen,
+    id: 'pendulum',
+    name: 'Pendulum',
+    note: 'A short arc swinging on its centre while its curve deepens and eases.',
+    Component: Pendulum,
   },
   {
-    id: 'bloom',
-    name: 'Bloom',
-    note: 'Rings opening outward from a point and fading, like an aura.',
-    Component: Bloom,
+    id: 'loop',
+    name: 'Loop',
+    note: 'The line folds into a knot, turns, then unfolds.',
+    Component: Loop,
   },
 ] as const;
 
 /** The variation the console currently uses. */
-export const THINKING = Facet;
+export const THINKING = Clasp;

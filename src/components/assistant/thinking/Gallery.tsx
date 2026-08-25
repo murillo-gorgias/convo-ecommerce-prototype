@@ -1,4 +1,3 @@
-import { ThinkingMark } from '../icons';
 import { thinkingVariations } from './variations';
 
 /**
@@ -15,21 +14,12 @@ export function ThinkingGallery() {
           Thinking animations
         </h1>
         <p className="mt-2 max-w-[520px] font-[var(--font-ui)] text-[14px] leading-[22px] text-[var(--ink-muted)]">
-          Five directions for what the assistant shows while it works. Each one is
-          drawn in ink at the size it appears in the console. Pick one and I will
-          wire it in.
+          Five variations on a morphing line. In each one the line itself changes
+          shape while light travels through it — never a static track. Drawn in ink
+          at the size it appears in the console.
         </p>
 
         <div className="mt-10 grid gap-4 sm:grid-cols-2">
-          {/* What is in the design file today, for comparison. */}
-          <Card
-            name="Current"
-            note="The sparkle mark from the design file, as it stands today."
-            muted
-          >
-            <ThinkingMark />
-          </Card>
-
           {thinkingVariations.map(({ id, name, note, Component }) => (
             <Card key={id} name={name} note={note}>
               <Component />
@@ -44,12 +34,10 @@ export function ThinkingGallery() {
 function Card({
   name,
   note,
-  muted,
   children,
 }: {
   name: string;
   note: string;
-  muted?: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -58,11 +46,6 @@ function Card({
         <h2 className="font-[var(--font-display)] text-[15px] font-[500] uppercase tracking-[0.8px] text-[var(--ink)]">
           {name}
         </h2>
-        {muted && (
-          <span className="font-[var(--font-ui)] text-[11px] uppercase tracking-[0.5px] text-[var(--ink-muted)]">
-            in the file today
-          </span>
-        )}
       </div>
       <p className="mt-1 font-[var(--font-ui)] text-[13px] leading-[19px] text-[var(--ink-muted)]">
         {note}

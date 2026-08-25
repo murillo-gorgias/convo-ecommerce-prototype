@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { assistantCopy } from '../../content/assistant';
 import { moves } from '../../motion/motion';
-import { CloseIcon, ExpandIcon, MicIcon, SubmitIcon, ThinkingMark, Waveform } from './icons';
+import { CloseIcon, ExpandIcon, MicIcon, SubmitIcon, Waveform } from './icons';
+import { THINKING } from './thinking/variations';
+import { ShopTheLook } from './ShopTheLook';
 
 /**
  * ============================================================================
@@ -21,10 +23,13 @@ import { CloseIcon, ExpandIcon, MicIcon, SubmitIcon, ThinkingMark, Waveform } fr
  * The morph itself is `moves.assistant.shapeChange` in the motion file.
  */
 
-type Shape = 'bar' | 'pill' | 'console';
+type Shape = 'bar' | 'pill' | 'console' | 'full';
 
 /** How far the store must scroll before the bar collapses into the pill. */
 const COLLAPSE_AFTER = 120;
+
+/** How long the assistant appears to think before its answer arrives. */
+const THINKING_TIME = 2200;
 
 export function Assistant({
   scrollRef,
@@ -42,7 +47,7 @@ export function Assistant({
     if (!el) return;
     const onScroll = () => {
       setShape((current) => {
-        if (current === 'console') return current;
+        if (current === 'console' || current === 'full') return current;
         return el.scrollTop > COLLAPSE_AFTER ? 'pill' : 'bar';
       });
     };
@@ -86,11 +91,18 @@ export function Assistant({
     return () => clearInterval(timer);
   }, [listening]);
 
+  /* --- Thinking finishes, and the answer takes over the screen ----------- */
+  useEffect(() => {
+    if (!submitted) return;
+    const timer = setTimeout(() => setShape('full'), THINKING_TIME);
+    return () => clearTimeout(timer);
+  }, [submitted]);
+
   return (
     <>
       {/* The wash over the store while the console is open. */}
       <AnimatePresence>
-        {shape === 'console' && (
+        {(shape === 'console' || shape === 'full') && (
           <motion.button
             {...moves.assistant.scrim}
             onClick={closeConsole}
@@ -129,6 +141,14 @@ export function Assistant({
               onVoice={startListening}
             />
           )}
+          {shape === 'full' && (
+            <ShopTheLook
+              key="full"
+              message={assistantCopy.answer}
+              onCollapse={() => setShape('console')}
+              onClose={closeConsole}
+            />
+          )}
         </AnimatePresence>
       </motion.div>
     </>
@@ -151,7 +171,11 @@ function containerClass(shape: Shape) {
   if (shape === 'pill') {
     return `${base} bottom-6 left-1/2 h-[60px] w-[60px] -translate-x-1/2 rounded-full shadow-[var(--assistant-shadow)]`;
   }
-  return `${base} bottom-6 left-2 right-2 rounded-[var(--radius-console)] bg-[var(--assistant-surface-solid)] shadow-[var(--assistant-shadow-lifted)]`;
+  if (shape === 'console') {
+    return `${base} bottom-6 left-2 right-2 rounded-[var(--radius-console)] bg-[var(--assistant-surface-solid)] shadow-[var(--assistant-shadow-lifted)]`;
+  }
+  // Full screen: the same element, given the whole frame.
+  return 'overflow-hidden border-0 inset-0 rounded-none bg-transparent';
 }
 
 /* ==========================================================================
@@ -277,7 +301,7 @@ function ConsoleContents({
               {...moves.assistant.contentSwap}
               className="flex justify-center"
             >
-              <ThinkingMark />
+              <THINKING />
             </motion.div>
           )}
         </AnimatePresence>

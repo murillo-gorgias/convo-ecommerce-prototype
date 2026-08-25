@@ -100,6 +100,21 @@ Grouped under `moves.assistant`. This is the part worth tuning most.
 
 ---
 
+## Shop the look — the answer
+
+Grouped under `moves.shopTheLook`. Three things arrive in order, and the order is the point.
+
+| Name | What you see | Notes |
+|---|---|---|
+| *(the container's own morph)* | The console grows to fill the screen | Same `shapeChange` spring as every other shape change |
+| `chrome` | Back button, wordmark and close fade down into place | 0.1s delay |
+| `productCard` | Each piece rises and settles, one after another | Gap between them is `stagger.base`, applied where the cards render |
+| `speech` | The assistant's line rises from the bottom | 0.55s delay, so it lands after the pieces have arrived |
+
+**One number outside this file:** how long the assistant appears to think before the answer
+arrives is `THINKING_TIME` at the top of `src/components/assistant/Assistant.tsx`. It is
+currently 2200 milliseconds.
+
 ## Voice
 
 Grouped under `moves.voice`.
@@ -109,9 +124,22 @@ Grouped under `moves.voice`.
 | `waveformBar` | The four bars rippling while listening | Each bar is offset from the last so they ripple rather than pump together |
 | `transcript` | The spoken words appearing as a chip | |
 
-The thinking mark — the four-point star that turns while the assistant works — is in
-`src/components/assistant/icons.tsx` under `ThinkingMark`, because its movement is part of
-the drawing rather than a reusable animation.
+## Thinking
+
+The five thinking animations live in `src/components/assistant/thinking/variations.tsx`.
+Each is a self-contained drawing, because its movement *is* the drawing. Compare them at
+`/#thinking`; switch the one in use by changing `THINKING` at the bottom of that file.
+
+All five share one idea: the line changes shape while light travels through it. Never a
+static track with something moving along it.
+
+| Name | What you see |
+|---|---|
+| `Arc` | A straight line bows into a half circle, flattens, bows the other way |
+| `Clasp` | The line closes into a ring, holds a beat, opens back out |
+| `Ribbon` | A length of chain gathering into a wave, tilting as it goes |
+| `Pendulum` | A short arc swinging on its centre while its curve deepens |
+| `Loop` | The line folds into a knot, turns, then unfolds |
 
 ---
 

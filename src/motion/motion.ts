@@ -209,6 +209,38 @@ export const moves = {
   },
 
   /* ------------------------------------------------------------------
+   * SHOP THE LOOK — the assistant's answer, taking over the screen
+   *
+   * Three things arrive in order, and the order is the point:
+   *   1. the surface opens          (the container's own morph)
+   *   2. the pieces settle in       productCard, one after another
+   *   3. the assistant speaks       speech, once there is something to say
+   * ------------------------------------------------------------------ */
+  shopTheLook: {
+    /** The back and close buttons, and the wordmark between them. */
+    chrome: {
+      initial: { opacity: 0, y: -8 },
+      animate: { opacity: 1, y: 0 },
+      transition: { duration: duration.base, ease: easing.refined, delay: 0.1 },
+    },
+
+    /** Each piece settling in. The delay between them is `stagger.base`,
+     *  applied where the cards are rendered. */
+    productCard: {
+      initial: { opacity: 0, y: 28, scale: 0.96 },
+      animate: { opacity: 1, y: 0, scale: 1 },
+      transition: { duration: duration.considered, ease: easing.refined },
+    },
+
+    /** The assistant's line rising from the bottom, after the pieces. */
+    speech: {
+      initial: { opacity: 0, y: 40 },
+      animate: { opacity: 1, y: 0 },
+      transition: { duration: duration.considered, ease: easing.refined, delay: 0.55 },
+    },
+  },
+
+  /* ------------------------------------------------------------------
    * VOICE — the microphone and listening states
    * ------------------------------------------------------------------ */
   voice: {
