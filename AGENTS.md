@@ -38,6 +38,17 @@ repo. Reference it by description, never by name or link.
   from layout and logic, so a copy change or a flow change never requires a rewrite.
 - **YAGNI.** Build only what has been asked for. No speculative abstractions, no unused
   configuration, no features nobody requested.
+- **One brand today, any brand later.** The prototype is built as a single named storefront
+  first. Once the experience is right, swapping in a different brand — visual style, product
+  data, tone of voice — must be a content and token change, never a rewrite. The interaction
+  design stays identical across brands.
+
+  In practice that means three things stay strictly separated from the components that render
+  them: **design tokens** (color, type, spacing, radius, motion), **product data**, and **all
+  written copy**. No hardcoded hex values, brand names, product names, or sentences inside
+  component files. This is a real constraint from day one, not a later refactor — but it is
+  satisfied by that separation alone. Do not build a theming engine, a plugin system, or a
+  configuration layer nobody asked for.
 
 ## Working style
 
