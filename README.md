@@ -15,6 +15,22 @@ npm install
 npm run dev
 ```
 
-## Status
+## What is built
 
-Early. Nothing built yet.
+- **Storefront** — announcement strip, header, navigation, a video hero and two campaign
+  sections. Scrolls on its own and knows nothing about the assistant.
+- **The assistant** — one element that morphs between three shapes: a wide bar at rest, a
+  circular button once you scroll, and an open console when tapped. Voice input plays back a
+  spoken query as a live transcript, then shows the assistant thinking.
+
+## How it is organised
+
+| Folder | Holds |
+|---|---|
+| `src/brand/` | Every colour, typeface and measurement |
+| `src/content/` | Every word, image and section of the storefront |
+| `src/motion/` | Every animation — see [MOTION.md](MOTION.md) |
+| `src/components/` | The components, which contain none of the above |
+
+Swapping in a different brand means changing `src/brand/` and `src/content/`. The experience
+itself does not change.

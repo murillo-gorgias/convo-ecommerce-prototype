@@ -1,0 +1,82 @@
+/**
+ * ============================================================================
+ * BRAND TOKENS
+ * ============================================================================
+ *
+ * Every colour, typeface and measurement the prototype uses. Swapping this one
+ * file for another brand's values changes the entire look without touching a
+ * single component.
+ *
+ * Values below are taken from the live storefront.
+ */
+
+:root {
+  /* ---- Typefaces --------------------------------------------------------
+   * The storefront's own typeface is licensed and cannot be redistributed,
+   * so the closest open equivalents stand in:
+   *   Display  Archivo  stands in for SyndicatGrotesk (headings, navigation)
+   *   UI       Inter    matches the design file's interface type
+   * ---------------------------------------------------------------------- */
+  --font-display: 'Archivo', Arial, Helvetica, sans-serif;
+  --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* ---- Type scale — measured from the live storefront ------------------- */
+  --type-nav-size: 14px;
+  --type-nav-weight: 500;
+  --type-nav-tracking: 0.28px;
+  --type-nav-line: 18.62px;
+
+  --type-section-size: 32px;
+  --type-section-weight: 500;
+  --type-section-tracking: 1.6px;
+  --type-section-line: 42.56px;
+
+  --type-cta-size: 14px;
+  --type-cta-weight: 400;
+  --type-cta-line: 21px;
+
+  --type-announce-size: 12px;
+  --type-announce-weight: 400;
+  --type-announce-tracking: 0.24px;
+
+  --type-body-size: 14px;
+  --type-body-line: 20px;
+
+  /* ---- Colour ----------------------------------------------------------- */
+  --ink: #0a0a0a;             /* body text on the storefront */
+  --ink-soft: #252423;        /* the design file's neutral content colour */
+  --ink-muted: #6b6b6b;       /* secondary text, placeholders */
+  --paper: #ffffff;           /* page background */
+  --paper-warm: #f6f4f1;      /* section grounds */
+  --line: rgba(10, 10, 10, 0.12);
+  --on-image: #ffffff;        /* type set over campaign photography */
+
+  /* The assistant's own surface — a light, slightly warm glass that sits
+     over the store without belonging to it. */
+  --assistant-surface: rgba(255, 255, 255, 0.86);
+  --assistant-surface-solid: #ffffff;
+  --assistant-border: rgba(10, 10, 10, 0.08);
+  --assistant-shadow: 0 8px 40px rgba(10, 10, 10, 0.14);
+  --assistant-shadow-lifted: 0 20px 60px rgba(10, 10, 10, 0.2);
+  --assistant-inner-light: inset 1px 2px 3px rgba(255, 255, 255, 0.2);
+  --scrim: rgba(10, 10, 10, 0.28);
+
+  /* ---- Spacing — the design file's scale --------------------------------- */
+  --space-xxxs: 4px;
+  --space-xxs: 6px;
+  --space-xs: 8px;
+  --space-sm: 12px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+
+  /* ---- Shape ------------------------------------------------------------- */
+  --radius-pill: 999px;
+  --radius-console: 20px;
+  --radius-control: 12px;
+
+  /* ---- The frame the prototype is presented in --------------------------- */
+  --viewport-width: 430px;
+  --viewport-height: 945px;
+  --header-height: 99px;
+}
