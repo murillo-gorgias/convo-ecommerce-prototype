@@ -11,6 +11,8 @@
  * small dots under the name. `moreColours` is the "+8" that follows them.
  */
 
+import { asset } from './asset';
+
 export type Product = {
   id: string;
   name: string;
@@ -27,7 +29,7 @@ export const recommendations: Product[] = [
     name: 'Carmen Beaded Necklace',
     price: 178,
     material: '18k Vermeil',
-    image: '/brand/products/carmen-beaded.jpg',
+    image: asset('/brand/products/carmen-beaded.jpg'),
     swatches: ['#7B2D26', '#8A6A4B', '#D9C7A7', '#2E4A8F'],
     moreColours: 6,
   },
@@ -36,7 +38,7 @@ export const recommendations: Product[] = [
     name: 'Bold Herringbone Chain',
     price: 338,
     material: '18k Vermeil',
-    image: '/brand/products/herringbone.jpg',
+    image: asset('/brand/products/herringbone.jpg'),
     swatches: ['#EAC37C', '#C8C8C8'],
   },
   {
@@ -44,7 +46,7 @@ export const recommendations: Product[] = [
     name: 'Floating Sapphire Necklace',
     price: 188,
     material: '18k Vermeil',
-    image: '/brand/products/floating-sapphire.jpg',
+    image: asset('/brand/products/floating-sapphire.jpg'),
     swatches: ['#EAC37C', '#C8C8C8'],
   },
   {
@@ -52,7 +54,7 @@ export const recommendations: Product[] = [
     name: 'Baguette Gemstone Station',
     price: 718,
     material: '14k Yellow Gold',
-    image: '/brand/products/baguette-station.jpg',
+    image: asset('/brand/products/baguette-station.jpg'),
     swatches: ['#1F6F44', '#2E4A8F', '#7B2D26'],
     moreColours: 3,
   },
@@ -61,7 +63,7 @@ export const recommendations: Product[] = [
     name: 'Anya Turquoise Beaded',
     price: 298,
     material: '10k Yellow Gold',
-    image: '/brand/products/anya-turquoise.jpg',
+    image: asset('/brand/products/anya-turquoise.jpg'),
     swatches: ['#4FB3BF', '#EAC37C'],
   },
   {
@@ -69,7 +71,7 @@ export const recommendations: Product[] = [
     name: 'Sapphire Cluster Necklace',
     price: 238,
     material: '18k Vermeil',
-    image: '/brand/products/sapphire-cluster.jpg',
+    image: asset('/brand/products/sapphire-cluster.jpg'),
     swatches: ['#EAC37C', '#C8C8C8'],
   },
   {
@@ -77,7 +79,7 @@ export const recommendations: Product[] = [
     name: 'Jojo Loop Pendant',
     price: 198,
     material: 'Silver + Vermeil',
-    image: '/brand/products/jojo-loop.jpg',
+    image: asset('/brand/products/jojo-loop.jpg'),
     swatches: ['#C8C8C8', '#EAC37C'],
   },
   {
@@ -85,7 +87,7 @@ export const recommendations: Product[] = [
     name: 'Vermeil Linked Necklace',
     price: 238,
     material: '18k Vermeil',
-    image: '/brand/products/vermeil-linked.jpg',
+    image: asset('/brand/products/vermeil-linked.jpg'),
     swatches: ['#EAC37C'],
   },
 ];

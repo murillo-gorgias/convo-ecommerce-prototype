@@ -7,6 +7,8 @@
  * file — no component needs to know which shop it is rendering.
  */
 
+import { asset } from './asset';
+
 export const brand = {
   name: 'Mejuri',
   /** The wordmark, drawn as a path so it stays sharp at any size. */
@@ -51,8 +53,8 @@ export const sections = [
     headline: 'THE ESSENTIALS',
     caption: 'Jewelry that becomes second skin. Worn every day, loved by generations.',
     cta: 'SHOP NOW',
-    video: '/brand/media/hero-essentials.mp4',
-    poster: '/brand/media/hero-essentials.jpg',
+    video: asset('/brand/media/hero-essentials.mp4'),
+    poster: asset('/brand/media/hero-essentials.jpg'),
   },
   {
     id: 'solid-gold',
@@ -62,7 +64,7 @@ export const sections = [
     headline: 'SOLID GOLD STAPLES',
     caption: null,
     cta: 'SHOP NOW',
-    image: '/brand/media/solid-gold-staples.jpg',
+    image: asset('/brand/media/solid-gold-staples.jpg'),
   },
   {
     id: 'sapphires',
@@ -72,7 +74,7 @@ export const sections = [
     headline: 'LAB GROWN SAPPHIRES',
     caption: null,
     cta: 'SHOP NOW',
-    image: '/brand/media/lab-grown-sapphires.jpg',
+    image: asset('/brand/media/lab-grown-sapphires.jpg'),
   },
 ] as const;
 
