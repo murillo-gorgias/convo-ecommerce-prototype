@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { assistantCopy } from '../../content/assistant';
-import { moves } from '../../motion/motion';
+import { moves, pace } from '../../motion/motion';
 import { CloseIcon, ExpandIcon, MicIcon, SubmitIcon, Waveform } from './icons';
 import { THINKING } from './thinking/variations';
 import { SignIn } from './SignIn';
@@ -38,8 +38,12 @@ const COLLAPSE_AFTER = 120;
 /** How long the assistant appears to think before it answers. */
 const THINKING_TIME = 2200;
 
-/** How long the account takes to open, once accepted. */
-const UNLOCK_TIME = 1900;
+/**
+ * How long the account takes to open, once accepted. The confirmation is then
+ * held for `pace.beforeExpanding` on top of this, so the shopper reads it
+ * before the session takes the screen.
+ */
+const UNLOCK_TIME = 1600;
 
 export function Assistant({
   scrollRef,
@@ -112,7 +116,7 @@ export function Assistant({
   /* --- The account opens, and the session takes the screen --------------- */
   const acceptAccount = () => {
     setUnlocking(true);
-    setTimeout(() => setShape('session'), UNLOCK_TIME);
+    setTimeout(() => setShape('session'), UNLOCK_TIME + pace.beforeExpanding);
   };
 
   /* Declining keeps the journey moving. The unsigned path — where the

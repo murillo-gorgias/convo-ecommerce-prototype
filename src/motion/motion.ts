@@ -105,7 +105,67 @@ export const stagger = {
 } as const;
 
 /* ==========================================================================
- * 5. MOVES
+ * 5. PACE
+ * How long the assistant WAITS. Everything above is about how things move;
+ * this is about the silence between them.
+ *
+ * The session is a conversation, and a conversation has turns. If a section
+ * folds, the assistant replies, and the next question appears all in the same
+ * half second, none of it is read — it looks like a page loading rather than
+ * someone thinking. Every number here buys a beat of that silence.
+ *
+ * All values are in MILLISECONDS, because they are waits, not animations.
+ * ========================================================================== */
+
+export const pace = {
+  /** After the shopper's own words appear, before the assistant replies. */
+  afterSaid: 620,
+
+  /** After a section appears, before it starts speaking. */
+  beforeSpeech: 340,
+
+  /** After a line finishes typing, before what it asks for arrives. */
+  afterSpeech: 460,
+
+  /** After a section folds shut, before the assistant says anything about it. */
+  afterFold: 700,
+
+  /** After a section is completely settled, before the next one appears. */
+  betweenSections: 950,
+
+  /**
+   * After the account has visibly opened, before the session takes the screen.
+   * This one is the longest wait in the prototype on purpose: it is the only
+   * moment the shopper is asked to wait for something real, and the expansion
+   * that follows is the biggest movement in the journey. Landing them on top
+   * of each other wastes both.
+   */
+  beforeExpanding: 1500,
+
+  /**
+   * TYPING. The assistant types rather than pasting, because a line that
+   * appears whole reads as a lookup and a line that arrives reads as a reply.
+   *
+   * The speed per character is worked out from the length of the line, so a
+   * short line and a long one take roughly the same time to say. Without that,
+   * a two-sentence prompt would hold the shopper for five seconds.
+   */
+  typing: {
+    /** How long a line should take to say, whatever its length. */
+    target: 1500,
+    /** Never faster than this per character. */
+    min: 9,
+    /** Never slower than this per character. */
+    max: 30,
+  },
+} as const;
+
+/** The per-character delay for one line, given how long it is. */
+export const typingSpeed = (length: number) =>
+  Math.min(pace.typing.max, Math.max(pace.typing.min, pace.typing.target / Math.max(length, 1)));
+
+/* ==========================================================================
+ * 6. MOVES
  * Named animations, grouped by the part of the interface they belong to.
  * Each one says what it is for. Drop them straight into a Motion component.
  * ========================================================================== */
@@ -252,6 +312,20 @@ export const moves = {
     /** A line the assistant speaks. Rises a little as it arrives. */
     line: {
       initial: { opacity: 0, y: 10 },
+      animate: { opacity: 1, y: 0 },
+      transition: { duration: duration.considered, ease: easing.refined },
+    },
+
+    /** The caret blinking at the end of a line still being typed. */
+    caret: {
+      animate: { opacity: [1, 1, 0, 0] },
+      transition: { duration: 0.9, ease: 'linear' as const, repeat: Infinity, times: [0, 0.45, 0.5, 1] },
+    },
+
+    /** What a question asks for — the tiles, the carousel — arriving after
+     *  the question has finished being asked. */
+    body: {
+      initial: { opacity: 0, y: 14 },
       animate: { opacity: 1, y: 0 },
       transition: { duration: duration.considered, ease: easing.refined },
     },

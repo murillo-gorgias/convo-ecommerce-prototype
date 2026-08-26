@@ -100,6 +100,56 @@ Grouped under `moves.assistant`. This is the part worth tuning most.
 
 ---
 
+## Pace — how long the assistant waits
+
+Everything else in this file is about how things *move*. This is about the silence between
+them, and it is the difference between a conversation and a page loading. All of it lives in
+`pace`, in `src/motion/motion.ts`, in **milliseconds**.
+
+Only one thing happens at a time. A section is not shown because the last one was answered —
+it is shown because the last one **went quiet**.
+
+| Name | ms | The wait it buys |
+|---|---|---|
+| `afterSaid` | 620 | The shopper's words land, before the assistant replies |
+| `beforeSpeech` | 340 | A section appears, before it starts speaking |
+| `afterSpeech` | 460 | A question finishes, before what it asks for arrives |
+| `afterFold` | 700 | A section folds shut, before anything is said about it |
+| `betweenSections` | 950 | A section goes quiet, before the next one appears |
+| `beforeExpanding` | 1500 | The account visibly opens, before the session takes the screen |
+
+`beforeExpanding` is the longest wait in the prototype on purpose. It is the only moment the
+shopper is asked to wait for something real, and the expansion that follows is the biggest
+movement in the journey. Landing them on top of each other wastes both.
+
+### Typing
+
+The assistant types rather than pasting. A line that appears whole reads as a database
+lookup; a line that arrives reads as a reply.
+
+The speed per character is worked out **from the length of the line**, so a short line and a
+long one take about the same time to say — `pace.typing.target` (1500ms), clamped between
+`min` (9ms) and `max` (30ms) per character. Without that, the sizing prompt would hold the
+shopper for five seconds while the vibe prompt flashed past.
+
+The full line is rendered underneath at zero opacity, so a paragraph holds its final height
+from the first character. Otherwise the whole conversation below would shunt down every time
+a line wrapped onto a new row.
+
+**Want the whole thing quicker for a demo?** Lower `pace.typing.target` and
+`pace.betweenSections`. Those two carry most of the running time.
+
+### The order a section arrives in
+
+    label ──▶ beat ──▶ question types itself ──▶ beat ──▶ what it asks for
+                                                            (tiles, carousel)
+
+And on the way out:
+
+    answered ──▶ unchosen clear ──▶ fold ──▶ beat ──▶ the assistant reacts ──▶ beat ──▶ next section
+
+Anyone who has asked their system for less movement gets every line at once, with no typing.
+
 ## The guided session — the assistant's questions
 
 Grouped under `moves.session`. The session is one scrolling conversation. Its movement

@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { perfectFit, type Recommendation } from '../../../content/journey';
 import { moves, stagger } from '../../../motion/motion';
 import { CartIcon, CheckIcon, ChevronDownIcon, PlusIcon, SparkIcon, StarIcon } from '../icons';
-import { Label, Line, Section } from './parts';
+import { Body, Label, Line, Section, useSectionReveal } from './parts';
 
 /**
  * ============================================================================
@@ -16,23 +16,33 @@ import { Label, Line, Section } from './parts';
  *
  * Everything a shopper would leave to find is here: the price, the rating, the
  * material, the bag. The session never hands them off to a product page.
+ *
+ * It paces itself like every other section: the line is said first, and the
+ * pieces only arrive once it has been said. After three questions, the payoff
+ * is worth a beat of anticipation.
  */
 
 export function PerfectFit({ innerRef }: { innerRef?: React.Ref<HTMLDivElement> }) {
+  const { speaking, ready, onSpoken } = useSectionReveal();
+
   return (
     <Section innerRef={innerRef}>
       <Label>{perfectFit.label}</Label>
-      <Line>{perfectFit.prompt}</Line>
+      <Line start={speaking} onDone={onSpoken}>
+        {perfectFit.prompt}
+      </Line>
 
-      {/* The carousel runs past the thread's margins, so a second card is
-          always visible at the edge and the swipe is discoverable. */}
-      <div className="-mx-4 w-[calc(100%+32px)] overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <div className="flex snap-x snap-mandatory gap-[14px] px-2">
-          {perfectFit.pieces.map((piece, index) => (
-            <Piece key={piece.id} piece={piece} index={index} />
-          ))}
+      <Body show={ready}>
+        {/* The carousel runs past the thread's margins, so a second card is
+            always visible at the edge and the swipe is discoverable. */}
+        <div className="-mx-4 w-[calc(100%+32px)] overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="flex snap-x snap-mandatory gap-[14px] px-2">
+            {perfectFit.pieces.map((piece, index) => (
+              <Piece key={piece.id} piece={piece} index={index} />
+            ))}
+          </div>
         </div>
-      </div>
+      </Body>
     </Section>
   );
 }

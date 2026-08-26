@@ -1,9 +1,10 @@
+import { useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { opening, shopper } from '../../content/journey';
 import { assistantCopy } from '../../content/assistant';
-import { moves } from '../../motion/motion';
+import { moves, pace } from '../../motion/motion';
 import { CloseIcon, ExpandIcon, UserCheckIcon } from './icons';
-import { Said } from './session/parts';
+import { Body, Line, Said, useAfter } from './session/parts';
 
 /**
  * ============================================================================
@@ -19,7 +20,9 @@ import { Said } from './session/parts';
  * card holding the shopper's name collapses into a single line, light travels
  * across the words, and a small mark opens, turns and closes again beside it.
  * That second beat is the only place in the session where the assistant makes
- * the shopper wait, so it is the one place worth decorating.
+ * the shopper wait, so it is the one place worth decorating — and it is held
+ * for `pace.beforeExpanding` before the session takes the screen, so the
+ * confirmation is read rather than glimpsed on the way past.
  */
 
 export function SignIn({
@@ -36,6 +39,16 @@ export function SignIn({
   onCollapse: () => void;
   onClose: () => void;
 }) {
+  const [invited, setInvited] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
+
+  /* The query lands, and the assistant takes a moment before it replies. */
+  useAfter(pace.afterSaid, true, () => setSpeaking(true));
+
+  /* The offer itself waits until the offer has been made in words. */
+  const [offering, setOffering] = useState(false);
+  useAfter(pace.afterSpeech, invited, () => setOffering(true));
+
   return (
     <motion.div {...moves.assistant.consoleContent} className="flex flex-col gap-4 p-4">
       {/* Controls */}
@@ -58,13 +71,19 @@ export function SignIn({
 
       <Said>{opening.query}</Said>
 
-      <p className="font-[var(--font-ui)] text-[14px] leading-[var(--type-said-line)] text-black">
+      <Line start={speaking} onDone={() => setInvited(true)}>
         {opening.invitation}
-      </p>
+      </Line>
 
-      <AnimatePresence mode="wait" initial={false}>
-        {opened ? <Opening key="opening" /> : <Offer key="offer" onContinue={onContinue} onDecline={onDecline} />}
-      </AnimatePresence>
+      <Body show={offering}>
+        <AnimatePresence mode="wait" initial={false}>
+          {opened ? (
+            <Opening key="opening" />
+          ) : (
+            <Offer key="offer" onContinue={onContinue} onDecline={onDecline} />
+          )}
+        </AnimatePresence>
+      </Body>
     </motion.div>
   );
 }

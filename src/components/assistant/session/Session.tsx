@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import { chips, opening, sizing, styleCheck, vibeCheck } from '../../../content/journey';
+import { pace } from '../../../motion/motion';
 import { Dock, SessionGround, SessionHeader, type Suggestion } from './Chrome';
-import { Line, Said } from './parts';
+import { Line, Said, useAfter } from './parts';
 import { VibeCheck } from './VibeCheck';
 import { PickOne } from './PickOne';
 import { PerfectFit } from './PerfectFit';
@@ -26,10 +27,23 @@ import { PerfectFit } from './PerfectFit';
  * question, a delivery question or a gift-wrap question means adding its copy
  * to `content/journey.ts` and rendering one more section here. Nothing else
  * needs to change, and any section can be removed the same way.
+ *
+ * HOW IT IS PACED
+ * Only one thing happens at a time. A section is not shown because the last
+ * one was answered — it is shown because the last one went quiet. Each section
+ * reports itself SETTLED when it has nothing left to say, and the next one
+ * waits `pace.betweenSections` after that before it appears. Every wait in the
+ * session is a number in `pace`, in the motion file.
  */
 
 /** A section is open, folding itself away, or closed. */
 type Phase = 'open' | 'folding' | 'closed';
+
+/** How far the conversation has got. Sections stay once they have appeared. */
+type Stage = 'greeting' | 'vibe' | 'style' | 'size' | 'pieces';
+
+const ORDER: Stage[] = ['greeting', 'vibe', 'style', 'size', 'pieces'];
+const reached = (stage: Stage, at: Stage) => ORDER.indexOf(stage) >= ORDER.indexOf(at);
 
 /** How long the unchosen images take to clear before the fold begins. */
 const CLEAR_TIME = 280;
@@ -45,7 +59,12 @@ export function Session({
   onCollapse: () => void;
   onClose: () => void;
 }) {
-  /* --- What the shopper has answered so far ----------------------------- */
+  /* --- How far the conversation has got ---------------------------------- */
+  const [stage, setStage] = useState<Stage>('greeting');
+  const [greeted, setGreeted] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
+
+  /* --- What the shopper has answered so far ------------------------------ */
   const [vibePicks, setVibePicks] = useState<string[]>([]);
   const [vibePhase, setVibePhase] = useState<Phase>('open');
 
@@ -55,23 +74,34 @@ export function Session({
   const [sizePick, setSizePick] = useState<string>();
   const [sizePhase, setSizePhase] = useState<Phase>('open');
 
-  /* --- Where each section sits, so a new one can be scrolled to ---------- */
+  /* --- Where each section sits, so a new one can be scrolled to ----------- */
   const thread = useRef<HTMLDivElement>(null);
+  const vibeRef = useRef<HTMLDivElement>(null);
   const styleRef = useRef<HTMLDivElement>(null);
   const sizeRef = useRef<HTMLDivElement>(null);
   const piecesRef = useRef<HTMLDivElement>(null);
   const askRef = useRef<HTMLInputElement>(null);
 
-  const styleVisible = vibePhase === 'closed';
-  const sizeVisible = stylePhase === 'closed';
-  const piecesVisible = sizePhase === 'closed';
+  /* --- The opening ------------------------------------------------------- */
 
-  /* --- A new section arrives, and the thread follows it ------------------ */
-  useScrollTo(styleRef, styleVisible);
-  useScrollTo(sizeRef, sizeVisible);
-  useScrollTo(piecesRef, piecesVisible);
+  /* The shopper's words land, and the assistant takes a moment before it
+     replies — the same moment a person would take. */
+  useAfter(pace.afterSaid, true, () => setSpeaking(true));
 
-  /* --- Answering --------------------------------------------------------- */
+  /* The greeting finishes, and the first question is still not rushed. */
+  useAfter(pace.betweenSections, greeted, () => setStage('vibe'));
+
+  /* --- One section settles, the next takes its turn ----------------------- */
+  const advance = (to: Stage) => () =>
+    window.setTimeout(() => setStage((at) => (reached(at, to) ? at : to)), pace.betweenSections);
+
+  /* --- A new section arrives, and the thread follows it -------------------- */
+  useScrollTo(vibeRef, reached(stage, 'vibe'));
+  useScrollTo(styleRef, reached(stage, 'style'));
+  useScrollTo(sizeRef, reached(stage, 'size'));
+  useScrollTo(piecesRef, reached(stage, 'pieces'));
+
+  /* --- Answering ---------------------------------------------------------- */
 
   const toggleVibe = (id: string) =>
     setVibePicks((current) =>
@@ -101,9 +131,9 @@ export function Session({
     askRef.current?.focus();
   }
 
-  /* --- What the open section offers above the input ---------------------- */
+  /* --- What the open section offers above the input ----------------------- */
   const suggestions: Suggestion[] = [];
-  if (vibePhase === 'open') {
+  if (reached(stage, 'vibe') && vibePhase === 'open') {
     if (vibePicks.length >= vibeCheck.minimum) {
       suggestions.push({ id: 'confirm', label: chips.confirm, onSelect: () => fold(setVibePhase) });
     }
@@ -122,11 +152,21 @@ export function Session({
       >
         <motion.div layout className="flex flex-col items-start gap-8 px-4 pb-[220px] pt-[104px]">
           <Said>{opening.query}</Said>
-          <Line>{opening.greeting}</Line>
+          <Line start={speaking} onDone={() => setGreeted(true)}>
+            {opening.greeting}
+          </Line>
 
-          <VibeCheck picks={vibePicks} phase={vibePhase} onToggle={toggleVibe} />
+          {reached(stage, 'vibe') && (
+            <VibeCheck
+              innerRef={vibeRef}
+              picks={vibePicks}
+              phase={vibePhase}
+              onToggle={toggleVibe}
+              onSettled={advance('style')}
+            />
+          )}
 
-          {styleVisible && (
+          {reached(stage, 'style') && (
             <PickOne
               innerRef={styleRef}
               section={styleCheck}
@@ -134,12 +174,13 @@ export function Session({
               picked={stylePick}
               phase={stylePhase}
               onPick={pickStyle}
+              onSettled={advance('size')}
               columns={2}
               sharedId={(id) => `style-${id}`}
             />
           )}
 
-          {sizeVisible && (
+          {reached(stage, 'size') && (
             <PickOne
               innerRef={sizeRef}
               section={sizing}
@@ -147,12 +188,13 @@ export function Session({
               picked={sizePick}
               phase={sizePhase}
               onPick={pickSize}
+              onSettled={advance('pieces')}
               columns={3}
               sharedId={(id) => `size-${id}`}
             />
           )}
 
-          {piecesVisible && <PerfectFit innerRef={piecesRef} />}
+          {reached(stage, 'pieces') && <PerfectFit innerRef={piecesRef} />}
         </motion.div>
       </div>
 
@@ -162,8 +204,8 @@ export function Session({
 }
 
 /**
- * Brings a section into view once it exists. Waits a frame past the section's
- * own entrance so the scroll lands where the section finishes, not where it
+ * Brings a section into view once it exists. Waits past the section's own
+ * entrance so the scroll lands where the section finishes, not where it
  * started.
  */
 function useScrollTo(ref: React.RefObject<HTMLDivElement | null>, visible: boolean) {

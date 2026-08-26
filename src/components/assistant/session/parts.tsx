@@ -1,5 +1,6 @@
+import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { moves, stagger } from '../../../motion/motion';
+import { moves, pace, prefersReducedMotion, stagger, typingSpeed } from '../../../motion/motion';
 import type { Tile } from '../../../content/journey';
 import { CheckIcon, HeartIcon, StackIcon } from '../icons';
 
@@ -12,15 +13,60 @@ import { CheckIcon, HeartIcon, StackIcon } from '../icons';
  * learns the pattern once:
  *
  *   LABEL      a small caps heading naming the section
- *   PROMPT     the assistant's question, in its own voice
- *   TILES      images to tap
+ *   PROMPT     the assistant's question, typed out in its own voice
+ *   BODY       the images to tap, arriving once the question has been asked
  *   CONFIRMED  the single line the section folds into once answered
  *
- * The fold is the important one. When a section is answered, the images the
- * shopper chose do not disappear and reappear as thumbnails somewhere else —
- * they travel there. Motion matches them by `layoutId`, which is why the same
- * photograph carries the answer from the question to the record of it.
+ * Two things here are worth understanding before changing anything.
+ *
+ * THE TYPING. The assistant types rather than pasting. A line that appears
+ * whole reads as a database lookup; a line that arrives reads as a reply. The
+ * speed is worked out from the length of the line so every line takes about
+ * the same time to say — see `pace.typing` in the motion file.
+ *
+ * THE FOLD. When a section is answered, the images the shopper chose do not
+ * disappear and reappear as thumbnails somewhere else — they travel there.
+ * Motion matches them by `layoutId`, which is why the same photograph carries
+ * the answer from the question to the record of it.
  */
+
+/* ==========================================================================
+ * TYPING
+ * ========================================================================== */
+
+/**
+ * Reveals a line one character at a time. Anyone who has asked their system
+ * for less movement gets the whole line at once.
+ */
+function useTypewriter(text: string, start: boolean, onDone?: () => void) {
+  const [count, setCount] = useState(0);
+  const finished = useRef(onDone);
+  finished.current = onDone;
+
+  useEffect(() => {
+    if (!start) return;
+
+    if (prefersReducedMotion()) {
+      setCount(text.length);
+      finished.current?.();
+      return;
+    }
+
+    let i = 0;
+    const timer = window.setInterval(() => {
+      i += 1;
+      setCount(i);
+      if (i >= text.length) {
+        window.clearInterval(timer);
+        finished.current?.();
+      }
+    }, typingSpeed(text.length));
+
+    return () => window.clearInterval(timer);
+  }, [start, text]);
+
+  return { shown: text.slice(0, count), typing: start && count < text.length };
+}
 
 /* ==========================================================================
  * WHAT WAS SAID
@@ -40,16 +86,42 @@ export function Said({ children }: { children: string }) {
   );
 }
 
-/** A line the assistant speaks. */
-export function Line({ children, delay = 0 }: { children: string; delay?: number }) {
+/**
+ * A line the assistant speaks, typed out.
+ *
+ * The full line is rendered underneath at zero opacity so the paragraph holds
+ * its final height from the very first character. Without that, the whole
+ * conversation below would shunt down every time a line wrapped onto a new row.
+ */
+export function Line({
+  children,
+  start = true,
+  onDone,
+}: {
+  children: string;
+  /** Held false until it is this line's turn to be said. */
+  start?: boolean;
+  onDone?: () => void;
+}) {
+  const { shown, typing } = useTypewriter(children, start, onDone);
+
   return (
     <motion.p
-      initial={moves.session.line.initial}
-      animate={moves.session.line.animate}
-      transition={{ ...moves.session.line.transition, delay }}
-      className="w-full font-[var(--font-ui)] text-[14px] leading-[var(--type-said-line)] text-black"
+      {...moves.session.line}
+      className="relative w-full font-[var(--font-ui)] text-[14px] leading-[var(--type-said-line)] text-black"
     >
-      {children}
+      <span aria-hidden className="invisible">
+        {children}
+      </span>
+      <span className="absolute inset-0">
+        {shown}
+        {typing && (
+          <motion.span
+            {...moves.session.caret}
+            className="ml-[1px] inline-block h-[13px] w-[1.5px] translate-y-[2px] bg-black/70"
+          />
+        )}
+      </span>
     </motion.p>
   );
 }
@@ -84,6 +156,76 @@ export function Section({
       {children}
     </motion.section>
   );
+}
+
+/* ==========================================================================
+ * THE ORDER A SECTION ARRIVES IN
+ *
+ * Label, a beat, the question typing itself out, a beat, and only then the
+ * thing it is asking for. Every section follows it, which is what makes the
+ * session feel paced rather than rendered.
+ * ========================================================================== */
+
+export function useSectionReveal() {
+  const [speaking, setSpeaking] = useState(false);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setSpeaking(true), pace.beforeSpeech);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  /** Called the moment the question has finished being asked. */
+  const onSpoken = () => {
+    window.setTimeout(() => setReady(true), pace.afterSpeech);
+  };
+
+  return { speaking, ready, onSpoken };
+}
+
+/**
+ * Brings in whatever a question is asking for, once it has been asked.
+ *
+ * It also nudges its section back to the top of the thread as it arrives. The
+ * thread already scrolled to this section when the label appeared, but at that
+ * point the section was two lines tall and there was nothing below it to
+ * scroll against. Now that it has filled out, the scroll can actually land.
+ */
+export function Body({ show, children }: { show: boolean; children: React.ReactNode }) {
+  const held = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!show) return;
+    const timer = window.setTimeout(() => {
+      held.current?.closest('section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 120);
+    return () => window.clearTimeout(timer);
+  }, [show]);
+
+  return (
+    <AnimatePresence initial={false}>
+      {show && (
+        <motion.div ref={held} layout {...moves.session.body} className="w-full">
+          {children}
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+/**
+ * Waits, then does something once. Every pause in the session runs through
+ * here, so no component reaches for `setTimeout` on its own.
+ */
+export function useAfter(delay: number, run: boolean, then: () => void) {
+  const act = useRef(then);
+  act.current = then;
+
+  useEffect(() => {
+    if (!run) return;
+    const timer = window.setTimeout(() => act.current(), delay);
+    return () => window.clearTimeout(timer);
+  }, [delay, run]);
 }
 
 /* ==========================================================================
@@ -130,7 +272,7 @@ export function ImageTile({
       transition={
         discarded
           ? moves.session.tileDiscard.transition
-          : { ...moves.session.tile.transition, delay: index * stagger.tight }
+          : { ...moves.session.tile.transition, delay: index * stagger.base }
       }
       whileTap={moves.session.tilePress}
       className={
@@ -173,7 +315,11 @@ export function ImageTile({
             key={chosen ? 'on' : 'off'}
             animate={chosen ? moves.session.heartBeat.animate : undefined}
             transition={moves.session.heartBeat.transition}
-            className={chosen ? 'text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.4)]' : 'text-white/90 drop-shadow-[0_1px_3px_rgba(0,0,0,0.35)]'}
+            className={
+              chosen
+                ? 'text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.4)]'
+                : 'text-white/90 drop-shadow-[0_1px_3px_rgba(0,0,0,0.35)]'
+            }
           >
             <HeartIcon filled={chosen} />
           </motion.span>
@@ -212,10 +358,7 @@ export function Confirmed({
         thumbs.length > 1 ? 'pr-5' : ''
       }`}
     >
-      <motion.span
-        {...moves.session.tick}
-        className="shrink-0 text-[var(--ink-soft)]"
-      >
+      <motion.span {...moves.session.tick} className="shrink-0 text-[var(--ink-soft)]">
         {count ? <StackWithCount count={count} /> : <CheckIcon size={24} />}
       </motion.span>
 
