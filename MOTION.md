@@ -100,20 +100,56 @@ Grouped under `moves.assistant`. This is the part worth tuning most.
 
 ---
 
-## Shop the look — the answer
+## The guided session — the assistant's questions
 
-Grouped under `moves.shopTheLook`. Three things arrive in order, and the order is the point.
+Grouped under `moves.session`. The session is one scrolling conversation. Its movement
+follows a single rule: a section **arrives** softly and **leaves by folding** into the one
+line that records the answer. Nothing is ever thrown away on screen.
+
+### The fold — the moment worth protecting
+
+When a section is answered, the images the shopper chose do not fade out here and fade in
+there. They **travel**, because Motion matches the same image across the change by its
+`layoutId`. That is why the photograph the shopper picked is still the photograph sitting in
+the record of the answer.
+
+The fold happens in two beats, so it reads as deliberate rather than abrupt:
+
+1. **Clear** — everything that was *not* chosen scales down and blurs away (`tileDiscard`).
+2. **Fold** — the section collapses to a 72px row and the chosen images travel into it.
+
+The gap between the two beats is `CLEAR_TIME` in `src/components/assistant/session/Session.tsx`,
+currently 280 milliseconds.
 
 | Name | What you see | Notes |
 |---|---|---|
-| *(the container's own morph)* | The console grows to fill the screen | Same `shapeChange` spring as every other shape change |
-| `chrome` | Back button, wordmark and close fade down into place | 0.1s delay |
-| `productCard` | Each piece rises and settles, one after another | Gap between them is `stagger.base`, applied where the cards render |
-| `speech` | The assistant's line rises from the bottom | 0.55s delay, so it lands after the pieces have arrived |
+| `glow` | Two warm glows drifting behind the sheet | Very slow, 22–28s. Stops the surface reading flat |
+| `said` | The shopper's own words settling in on the right | |
+| `line` | A line the assistant speaks, rising slightly | |
+| `label` | A section's small caps heading, letters settling inward | Starts wide-tracked and closes up |
+| `section` | A whole new section arriving | |
+| `tile` | One image tile settling in | Gap between them is `stagger.tight` |
+| `tilePress` | The tile you are pressing | |
+| `tileChoice` | A chosen image eases back very slightly | Makes room for the ring around it |
+| `tileRing` | The ring marking a chosen tile | |
+| `heartBeat` | The heart, at the moment it fills | A single beat, no bounce after |
+| `tileDiscard` | An unchosen image clearing out as the section folds | Beat one of the fold |
+| `fold` | The confirmed line taking the section's place | Beat two of the fold |
+| `thumbTravel` | An image travelling into the confirmed line | The shared-layout transition |
+| `tick` | The tick landing on a confirmed section | |
+| `chip` | The suggestions above the input, arriving and leaving | |
+| `piece` | A recommended piece arriving in the carousel | Gap between them is `stagger.slow` |
+| `shimmer` | Light travelling across text while the account opens | |
+| `unlockMark` | A shape that opens, turns and closes again beside it | Door, to circle, to door |
 
-**One number outside this file:** how long the assistant appears to think before the answer
-arrives is `THINKING_TIME` at the top of `src/components/assistant/Assistant.tsx`. It is
-currently 2200 milliseconds.
+**Two numbers outside this file**, both at the top of `Session.tsx`:
+
+- `CLEAR_TIME` — how long unchosen images take to clear before the fold. 280ms.
+- `ACKNOWLEDGE_TIME` — how long a one-answer section stays open after being tapped, so the
+  tap is seen before the section closes over it. 460ms.
+
+**And two in `Assistant.tsx`:** `THINKING_TIME` (2200ms) is how long the assistant appears to
+think before it answers; `UNLOCK_TIME` (1900ms) is how long the account takes to open.
 
 ## Voice
 

@@ -13,7 +13,12 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-button { cursor: pointer; background: none; border: none; padding: 0; font: inherit; color: inherit; }
+/* The button reset has to sit in the base layer. Left unlayered it outranks
+   every Tailwind utility, and buttons silently lose their background and
+   padding wherever one is set. */
+@layer base {
+  button { cursor: pointer; background: none; border: none; padding: 0; font: inherit; color: inherit; }
+}
 
 /* Anyone who has asked their system for less movement gets almost none. */
 @media (prefers-reduced-motion: reduce) {

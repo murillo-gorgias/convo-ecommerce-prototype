@@ -209,34 +209,146 @@ export const moves = {
   },
 
   /* ------------------------------------------------------------------
-   * SHOP THE LOOK — the assistant's answer, taking over the screen
+   * THE GUIDED SESSION — the assistant's questions, one after another
    *
-   * Three things arrive in order, and the order is the point:
-   *   1. the surface opens          (the container's own morph)
-   *   2. the pieces settle in       productCard, one after another
-   *   3. the assistant speaks       speech, once there is something to say
+   * The session is a single scrolling conversation. Its movement follows one
+   * rule: a section ARRIVES softly and LEAVES by folding into the one line
+   * that records the answer. Nothing is ever thrown away on screen.
+   *
+   * The fold is the moment worth protecting. The two chosen images do not
+   * fade out and fade back in somewhere else — they travel, because Motion
+   * matches them by `layoutId` across the change.
    * ------------------------------------------------------------------ */
-  shopTheLook: {
-    /** The back and close buttons, and the wordmark between them. */
+  session: {
+    /** The two warm glows behind the sheet, drifting so it never reads flat. */
+    glow: (index: number) => ({
+      animate: {
+        x: index === 0 ? [0, 26, 0] : [0, -22, 0],
+        y: index === 0 ? [0, -18, 0] : [0, 20, 0],
+        scale: [1, 1.08, 1],
+      },
+      transition: {
+        duration: 22 + index * 6,
+        ease: easing.even,
+        repeat: Infinity,
+        delay: index * 2,
+      },
+    }),
+
+    /** The header: back button, wordmark and close, fading down into place. */
     chrome: {
       initial: { opacity: 0, y: -8 },
       animate: { opacity: 1, y: 0 },
       transition: { duration: duration.base, ease: easing.refined, delay: 0.1 },
     },
 
-    /** Each piece settling in. The delay between them is `stagger.base`,
-     *  applied where the cards are rendered. */
-    productCard: {
-      initial: { opacity: 0, y: 28, scale: 0.96 },
+    /** What the shopper said, shown back to them. */
+    said: {
+      initial: { opacity: 0, y: 8, scale: 0.98 },
+      animate: { opacity: 1, y: 0, scale: 1 },
+      transition: spring.control,
+    },
+
+    /** A line the assistant speaks. Rises a little as it arrives. */
+    line: {
+      initial: { opacity: 0, y: 10 },
+      animate: { opacity: 1, y: 0 },
+      transition: { duration: duration.considered, ease: easing.refined },
+    },
+
+    /** The small caps label that opens a section. Letters settle inward. */
+    label: {
+      initial: { opacity: 0, letterSpacing: '3px' },
+      animate: { opacity: 1, letterSpacing: 'var(--type-label-tracking)' },
+      transition: { duration: duration.considered, ease: easing.refined },
+    },
+
+    /** A whole section arriving. */
+    section: {
+      initial: { opacity: 0, y: 18 },
+      animate: { opacity: 1, y: 0 },
+      transition: { duration: duration.considered, ease: easing.refined },
+    },
+
+    /** One image tile settling in. Delay is applied where they are rendered. */
+    tile: {
+      initial: { opacity: 0, y: 20, scale: 0.94 },
       animate: { opacity: 1, y: 0, scale: 1 },
       transition: { duration: duration.considered, ease: easing.refined },
     },
 
-    /** The assistant's line rising from the bottom, after the pieces. */
-    speech: {
-      initial: { opacity: 0, y: 40 },
-      animate: { opacity: 1, y: 0 },
-      transition: { duration: duration.considered, ease: easing.refined, delay: 0.55 },
+    /** The tile the shopper is pressing. */
+    tilePress: { scale: 0.97, transition: spring.control },
+
+    /** Chosen and unchosen, as a tile is tapped. The image eases back very
+     *  slightly so the ring around it has somewhere to sit. */
+    tileChoice: {
+      chosen: { scale: 0.965 },
+      open: { scale: 1 },
+      transition: spring.control,
+    },
+
+    /** The ring that marks a chosen tile. */
+    tileRing: {
+      initial: { opacity: 0, scale: 1.02 },
+      animate: { opacity: 1, scale: 1 },
+      exit: { opacity: 0, scale: 1.02 },
+      transition: spring.control,
+    },
+
+    /** The heart, at the moment it is filled. A single beat, no bounce after. */
+    heartBeat: {
+      animate: { scale: [1, 1.3, 1] },
+      transition: { duration: duration.base, ease: easing.refined },
+    },
+
+    /** THE FOLD. The confirmed line taking the place of the open section. */
+    fold: spring.surface,
+
+    /** A tile that was not chosen, leaving as the section folds. */
+    tileDiscard: {
+      opacity: 0,
+      scale: 0.9,
+      filter: 'blur(4px)',
+      transition: { duration: duration.quick, ease: easing.exit },
+    },
+
+    /** A thumbnail travelling into the confirmed line. */
+    thumbTravel: spring.surface,
+
+    /** The suggestion chips above the input, arriving and leaving. */
+    chip: {
+      initial: { opacity: 0, y: 8, scale: 0.94 },
+      animate: { opacity: 1, y: 0, scale: 1 },
+      exit: { opacity: 0, y: 4, scale: 0.94 },
+      transition: spring.control,
+    },
+
+    /** A recommended piece arriving in the carousel. */
+    piece: {
+      initial: { opacity: 0, y: 24, scale: 0.97 },
+      animate: { opacity: 1, y: 0, scale: 1 },
+      transition: { duration: duration.considered, ease: easing.refined },
+    },
+
+    /** Light travelling across text while the account is being opened. */
+    shimmer: {
+      animate: { backgroundPosition: ['200% 0', '-200% 0'] },
+      transition: { duration: 1.6, ease: 'linear' as const, repeat: Infinity },
+    },
+
+    /** The mark beside the sign-in line: a shape that opens, turns and closes
+     *  again. Door, to circle, to door. */
+    unlockMark: {
+      animate: { rotate: [0, 180, 360], borderRadius: ['4px', '50%', '4px'] },
+      transition: { duration: 1.8, ease: easing.refined, repeat: Infinity },
+    },
+
+    /** The tick that lands when a section is confirmed. */
+    tick: {
+      initial: { scale: 0, opacity: 0 },
+      animate: { scale: 1, opacity: 1 },
+      transition: { ...spring.control, delay: 0.08 },
     },
   },
 

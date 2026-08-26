@@ -4,7 +4,8 @@ import { assistantCopy } from '../../content/assistant';
 import { moves } from '../../motion/motion';
 import { CloseIcon, ExpandIcon, MicIcon, SubmitIcon, Waveform } from './icons';
 import { THINKING } from './thinking/variations';
-import { ShopTheLook } from './ShopTheLook';
+import { SignIn } from './SignIn';
+import { Session } from './session/Session';
 
 /**
  * ============================================================================
@@ -12,24 +13,33 @@ import { ShopTheLook } from './ShopTheLook';
  * ============================================================================
  *
  * One element that changes shape. It is never unmounted and remounted — the
- * same container morphs between three shapes, which is what makes the
- * transition read as a single object moving:
+ * same container morphs through every stage of the journey, which is what
+ * makes it read as a single object rather than a run of screens:
  *
  *     BAR  ──scroll down──▶  PILL  ──tap──▶  CONSOLE
  *      ▲                       │                 │
- *      └───── scroll up ───────┘                 │
- *      └──────────────── close ──────────────────┘
+ *      └───── scroll up ───────┘            ask a question
+ *                                                │
+ *                                             SIGN IN
+ *                                                │
+ *                                        continue as yourself
+ *                                                │
+ *                                            SESSION  (full screen)
  *
- * The morph itself is `moves.assistant.shapeChange` in the motion file.
+ * The morph itself is `moves.assistant.shapeChange` in the motion file. Every
+ * stage is a size and a position; nothing else about the transition changes.
  */
 
-type Shape = 'bar' | 'pill' | 'console' | 'full';
+type Shape = 'bar' | 'pill' | 'console' | 'signin' | 'session';
 
 /** How far the store must scroll before the bar collapses into the pill. */
 const COLLAPSE_AFTER = 120;
 
-/** How long the assistant appears to think before its answer arrives. */
+/** How long the assistant appears to think before it answers. */
 const THINKING_TIME = 2200;
+
+/** How long the account takes to open, once accepted. */
+const UNLOCK_TIME = 1900;
 
 export function Assistant({
   scrollRef,
@@ -40,16 +50,16 @@ export function Assistant({
   const [listening, setListening] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [unlocking, setUnlocking] = useState(false);
 
-  /* --- Scroll decides between BAR and PILL, but never overrides CONSOLE --- */
+  /* --- Scroll decides between BAR and PILL, and nothing beyond that ------ */
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
     const onScroll = () => {
-      setShape((current) => {
-        if (current === 'console' || current === 'full') return current;
-        return el.scrollTop > COLLAPSE_AFTER ? 'pill' : 'bar';
-      });
+      setShape((current) => (current === 'bar' || current === 'pill'
+        ? el.scrollTop > COLLAPSE_AFTER ? 'pill' : 'bar'
+        : current));
     };
     el.addEventListener('scroll', onScroll, { passive: true });
     return () => el.removeEventListener('scroll', onScroll);
@@ -57,15 +67,16 @@ export function Assistant({
 
   const openConsole = () => setShape('console');
 
-  const closeConsole = () => {
+  const closeAll = () => {
     setListening(false);
     setTranscript('');
     setSubmitted(false);
+    setUnlocking(false);
     const scrolled = (scrollRef.current?.scrollTop ?? 0) > COLLAPSE_AFTER;
     setShape(scrolled ? 'pill' : 'bar');
   };
 
-  /* --- Voice: types the demo query out as though it were being spoken ---- */
+  /* --- Voice: types the demo query out as though it were spoken ---------- */
   const startListening = () => {
     setListening(true);
     setTranscript('');
@@ -91,21 +102,31 @@ export function Assistant({
     return () => clearInterval(timer);
   }, [listening]);
 
-  /* --- Thinking finishes, and the answer takes over the screen ----------- */
+  /* --- Thinking finishes, and the assistant asks who it is talking to ---- */
   useEffect(() => {
     if (!submitted) return;
-    const timer = setTimeout(() => setShape('full'), THINKING_TIME);
+    const timer = setTimeout(() => setShape('signin'), THINKING_TIME);
     return () => clearTimeout(timer);
   }, [submitted]);
 
+  /* --- The account opens, and the session takes the screen --------------- */
+  const acceptAccount = () => {
+    setUnlocking(true);
+    setTimeout(() => setShape('session'), UNLOCK_TIME);
+  };
+
+  /* Declining keeps the journey moving. The unsigned path — where the
+     assistant works without knowing who this is — is not designed yet. */
+  const declineAccount = () => setShape('session');
+
   return (
     <>
-      {/* The wash over the store while the console is open. */}
+      {/* The wash over the store while the assistant is open. */}
       <AnimatePresence>
-        {(shape === 'console' || shape === 'full') && (
+        {shape !== 'bar' && shape !== 'pill' && (
           <motion.button
             {...moves.assistant.scrim}
-            onClick={closeConsole}
+            onClick={closeAll}
             aria-label={assistantCopy.labels.close}
             className="absolute inset-0 z-40 bg-[var(--scrim)] backdrop-blur-[2px]"
           />
@@ -122,32 +143,31 @@ export function Assistant({
       >
         <AnimatePresence initial={false}>
           {shape === 'bar' && (
-            <BarContents
-              key="bar"
-              onOpen={openConsole}
-              onVoice={startListening}
-            />
+            <BarContents key="bar" onOpen={openConsole} onVoice={startListening} />
           )}
-          {shape === 'pill' && (
-            <PillContents key="pill" onOpen={openConsole} />
-          )}
+          {shape === 'pill' && <PillContents key="pill" onOpen={openConsole} />}
           {shape === 'console' && (
             <ConsoleContents
               key="console"
               listening={listening}
               transcript={transcript}
               submitted={submitted}
-              onClose={closeConsole}
+              onClose={closeAll}
               onVoice={startListening}
             />
           )}
-          {shape === 'full' && (
-            <ShopTheLook
-              key="full"
-              message={assistantCopy.answer}
+          {shape === 'signin' && (
+            <SignIn
+              key="signin"
+              opened={unlocking}
+              onContinue={acceptAccount}
+              onDecline={declineAccount}
               onCollapse={() => setShape('console')}
-              onClose={closeConsole}
+              onClose={closeAll}
             />
+          )}
+          {shape === 'session' && (
+            <Session key="session" onCollapse={() => setShape('signin')} onClose={closeAll} />
           )}
         </AnimatePresence>
       </motion.div>
@@ -157,7 +177,7 @@ export function Assistant({
 
 /* ==========================================================================
  * SHAPES
- * The container's size, position and radius for each shape. Everything else
+ * The container's size, position and radius at each stage. Everything else
  * about the morph is handled by the shared layout animation.
  * ========================================================================== */
 
@@ -171,10 +191,11 @@ function containerClass(shape: Shape) {
   if (shape === 'pill') {
     return `${base} bottom-6 left-1/2 h-[60px] w-[60px] -translate-x-1/2 rounded-full shadow-[var(--assistant-shadow)]`;
   }
-  if (shape === 'console') {
-    return `${base} bottom-6 left-2 right-2 rounded-[var(--radius-console)] bg-[var(--assistant-surface-solid)] shadow-[var(--assistant-shadow-lifted)]`;
+  if (shape === 'console' || shape === 'signin') {
+    // The sign-in sheet is the console, given the room the question needs.
+    return `${base} bottom-0 left-0 right-0 rounded-t-[var(--radius-console)] bg-[var(--assistant-surface-solid)] shadow-[var(--assistant-shadow-lifted)]`;
   }
-  // Full screen: the same element, given the whole frame.
+  // The session: the same element, given the whole frame.
   return 'overflow-hidden border-0 inset-0 rounded-none bg-transparent';
 }
 
@@ -182,13 +203,7 @@ function containerClass(shape: Shape) {
  * BAR — the resting state
  * ========================================================================== */
 
-function BarContents({
-  onOpen,
-  onVoice,
-}: {
-  onOpen: () => void;
-  onVoice: () => void;
-}) {
+function BarContents({ onOpen, onVoice }: { onOpen: () => void; onVoice: () => void }) {
   return (
     <motion.div
       {...moves.assistant.contentSwap}
@@ -260,13 +275,10 @@ function ConsoleContents({
   }, [listening, submitted]);
 
   return (
-    <motion.div {...moves.assistant.consoleContent} className="flex flex-col p-4">
+    <motion.div {...moves.assistant.consoleContent} className="flex flex-col p-4 pb-7">
       {/* Controls */}
       <div className="flex items-center justify-between text-[var(--ink-soft)]">
-        <motion.button
-          whileTap={moves.assistant.press}
-          aria-label={assistantCopy.labels.expand}
-        >
+        <motion.button whileTap={moves.assistant.press} aria-label={assistantCopy.labels.expand}>
           <ExpandIcon />
         </motion.button>
         <motion.button
@@ -282,11 +294,7 @@ function ConsoleContents({
       <div className="flex min-h-[120px] flex-col justify-center py-4">
         <AnimatePresence mode="wait">
           {(listening || submitted) && transcript && (
-            <motion.div
-              key="transcript"
-              {...moves.voice.transcript}
-              className="mb-4 flex justify-end"
-            >
+            <motion.div key="transcript" {...moves.voice.transcript} className="mb-4 flex justify-end">
               <span className="max-w-[280px] rounded-[var(--radius-control)] bg-[var(--paper-warm)] px-3 py-2 text-right font-[var(--font-ui)] text-[length:var(--type-body-size)] leading-[var(--type-body-line)] text-[var(--ink-soft)]">
                 {transcript}
               </span>
@@ -296,11 +304,7 @@ function ConsoleContents({
 
         <AnimatePresence mode="wait">
           {submitted && (
-            <motion.div
-              key="thinking"
-              {...moves.assistant.contentSwap}
-              className="flex justify-center"
-            >
+            <motion.div key="thinking" {...moves.assistant.contentSwap} className="flex justify-center">
               <THINKING />
             </motion.div>
           )}

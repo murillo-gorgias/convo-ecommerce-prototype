@@ -41,6 +41,8 @@ export function Arc() {
     <div className={BOX}>
       <svg width="110" height="48" viewBox="0 0 110 48" fill="none">
         <motion.path
+          d={flat}
+          initial={{ d: flat }}
           stroke="currentColor"
           strokeWidth="1.2"
           strokeLinecap="round"
@@ -49,6 +51,8 @@ export function Arc() {
           transition={{ duration: 4.4, ease: easing.refined, repeat: Infinity }}
         />
         <motion.path
+          d={flat}
+          initial={{ d: flat }}
           stroke="currentColor"
           strokeWidth="1.5"
           strokeLinecap="round"
@@ -78,6 +82,8 @@ export function Clasp() {
     <div className={BOX}>
       <svg width="110" height="48" viewBox="0 0 110 48" fill="none">
         <motion.path
+          d={open}
+          initial={{ d: open }}
           stroke="currentColor"
           strokeWidth="1.2"
           strokeLinecap="round"
@@ -91,6 +97,8 @@ export function Clasp() {
           }}
         />
         <motion.path
+          d={open}
+          initial={{ d: open }}
           stroke="currentColor"
           strokeWidth="1.6"
           strokeLinecap="round"
@@ -133,6 +141,8 @@ export function Ribbon() {
         transition={{ duration: 5.2, ease: easing.even, repeat: Infinity }}
       >
         <motion.path
+          d={flat}
+          initial={{ d: flat }}
           stroke="currentColor"
           strokeWidth="1.2"
           strokeLinecap="round"
@@ -141,6 +151,8 @@ export function Ribbon() {
           transition={{ duration: 3.6, ease: easing.even, repeat: Infinity }}
         />
         <motion.path
+          d={flat}
+          initial={{ d: flat }}
           stroke="currentColor"
           strokeWidth="1.5"
           strokeLinecap="round"
@@ -178,6 +190,8 @@ export function Pendulum() {
         transition={{ duration: 3.4, ease: easing.refined, repeat: Infinity }}
       >
         <motion.path
+          d={shallow}
+          initial={{ d: shallow }}
           stroke="currentColor"
           strokeWidth="1.3"
           strokeLinecap="round"
@@ -186,6 +200,8 @@ export function Pendulum() {
           transition={{ duration: 1.7, ease: easing.even, repeat: Infinity }}
         />
         <motion.path
+          d={shallow}
+          initial={{ d: shallow }}
           stroke="currentColor"
           strokeWidth="1.6"
           strokeLinecap="round"
@@ -219,6 +235,8 @@ export function Loop() {
         transition={{ duration: 6.4, ease: easing.refined, repeat: Infinity }}
       >
         <motion.path
+          d={straight}
+          initial={{ d: straight }}
           stroke="currentColor"
           strokeWidth="1.2"
           strokeLinecap="round"
@@ -232,6 +250,8 @@ export function Loop() {
           }}
         />
         <motion.path
+          d={straight}
+          initial={{ d: straight }}
           stroke="currentColor"
           strokeWidth="1.5"
           strokeLinecap="round"

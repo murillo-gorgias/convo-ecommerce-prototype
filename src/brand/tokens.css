@@ -80,3 +80,45 @@
   --viewport-height: 945px;
   --header-height: 99px;
 }
+
+/* ==========================================================================
+ * THE GUIDED SESSION
+ * The surface the assistant runs its questions on, and the parts that repeat
+ * across every section of it. Taken from the design file.
+ * ========================================================================== */
+
+:root {
+  /* The sheet itself — a warm vertical wash, light at the top. */
+  --sheet-top: #fafafa;
+  --sheet-bottom: #f4efe7;
+
+  /* The two soft glows behind the sheet, which keep it from reading flat. */
+  --glow-warm: rgba(224, 178, 148, 0.38);
+  --glow-blush: rgba(238, 205, 190, 0.34);
+
+  /* What the shopper said, shown back to them. */
+  --query-bubble: rgba(235, 235, 235, 0.8);
+
+  /* A section that has been answered and folded away. */
+  --confirmed-bg: rgba(255, 255, 255, 0.4);
+  --confirmed-border: #c5ac9d;
+
+  /* A tappable image tile, and the ring it gets when chosen. */
+  --tile-border: rgba(140, 90, 60, 0.1);
+  --tile-chosen: #b08968;
+
+  /* The suggestions that sit just above the input. */
+  --chip: #c5ac9d;
+  --chip-border: rgba(140, 90, 60, 0.1);
+
+  /* The frosted strip along the bottom that holds the input. */
+  --dock-bg: rgba(255, 255, 255, 0.75);
+  --dock-border: rgba(255, 255, 255, 0.5);
+  --field-bg: rgba(255, 255, 255, 0.5);
+  --field-border: rgba(211, 211, 211, 0.5);
+
+  /* Type sizes the session uses that the storefront does not. */
+  --type-label-size: 12px;
+  --type-label-tracking: 0.96px;
+  --type-said-line: 21px;
+}

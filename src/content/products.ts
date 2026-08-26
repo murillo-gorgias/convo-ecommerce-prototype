@@ -23,6 +23,11 @@ export type Product = {
   moreColours?: number;
 };
 
+/**
+ * The wider catalogue. Nothing renders this yet — the two pieces the session
+ * recommends live in `journey.ts`. It stays because the sections still to be
+ * built (cart enhancers, "more like this") will draw from it.
+ */
 export const recommendations: Product[] = [
   {
     id: 'carmen-beaded',
