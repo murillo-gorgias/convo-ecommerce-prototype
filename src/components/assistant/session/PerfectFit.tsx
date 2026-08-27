@@ -36,6 +36,7 @@ import { Body, Label, Line, Section, useSectionReveal } from './parts';
 export function PerfectFit({
   innerRef,
   opened,
+  choosing,
   folded,
   onOpen,
   onReopen,
@@ -46,6 +47,8 @@ export function PerfectFit({
   innerRef?: React.Ref<HTMLDivElement>;
   /** The piece currently open, if any. */
   opened?: string;
+  /** The piece that has just been tapped, while the others are clearing. */
+  choosing?: string;
   /** True once the piece has stopped being the subject of the conversation. */
   folded?: boolean;
   onOpen: (id: string) => void;
@@ -66,32 +69,34 @@ export function PerfectFit({
       </Line>
 
       <Body show={ready} onSettled={onSettled}>
-        {/* No `mode="wait"`. The photograph has to be on screen in both the
-            old shape and the new one for it to travel between them — waiting
-            for one to leave before the other arrives is what made the piece
-            snap shut instead of folding.
+        {/* NO AnimatePresence here, deliberately.
+            All three states share one photograph, matched by `layoutId`, and
+            that is what carries the change. Keeping an outgoing state alive
+            alongside the incoming one put two blocks in the flow at once,
+            which is what shoved the conversation down and then snapped it back
+            as the old one left.
 
-            And no `initial={false}`. That suppresses the entrance animation of
-            whatever mounts first, which here is the grid — so all four pieces
-            appeared at once instead of arriving in turn. */}
-        <AnimatePresence>
-          {piece && folded ? (
-            <CollapsedPiece key="folded" piece={piece} onReopen={onReopen} />
-          ) : piece ? (
-            <OpenPiece key="open" piece={piece} inBag={inBag} onAddToBag={onAddToBag} />
-          ) : (
-            <motion.div key="grid" className="grid w-full grid-cols-2 gap-x-3 gap-y-5">
-              {perfectFit.pieces.map((candidate, index) => (
-                <GridPiece
-                  key={candidate.id}
-                  piece={candidate}
-                  index={index}
-                  onOpen={() => onOpen(candidate.id)}
-                />
-              ))}
-            </motion.div>
-          )}
-        </AnimatePresence>
+            Opening is staged instead: the three pieces that were not chosen
+            clear first, and only then does the one that was left morph out. By
+            the time the grid is replaced there is nothing visible in it except
+            the photograph that is travelling anyway. */}
+        {piece && folded ? (
+          <CollapsedPiece piece={piece} onReopen={onReopen} />
+        ) : piece ? (
+          <OpenPiece piece={piece} inBag={inBag} onAddToBag={onAddToBag} />
+        ) : (
+          <div className="grid w-full grid-cols-2 gap-x-3 gap-y-5">
+            {perfectFit.pieces.map((candidate, index) => (
+              <GridPiece
+                key={candidate.id}
+                piece={candidate}
+                index={index}
+                discarded={Boolean(choosing) && candidate.id !== choosing}
+                onOpen={() => onOpen(candidate.id)}
+              />
+            ))}
+          </div>
+        )}
       </Body>
     </Section>
   );
@@ -109,10 +114,13 @@ export function PerfectFit({
 function GridPiece({
   piece,
   index,
+  discarded,
   onOpen,
 }: {
   piece: Recommendation;
   index: number;
+  /** True while another piece is being opened and this one is clearing away. */
+  discarded: boolean;
   onOpen: () => void;
 }) {
   return (
@@ -120,8 +128,12 @@ function GridPiece({
       type="button"
       onClick={onOpen}
       initial={moves.session.piece.initial}
-      animate={moves.session.piece.animate}
-      transition={{ ...moves.session.piece.transition, delay: index * stagger.deliberate }}
+      animate={discarded ? moves.session.tileDiscard : moves.session.piece.animate}
+      transition={
+        discarded
+          ? moves.session.tileDiscard.transition
+          : { ...moves.session.piece.transition, delay: index * stagger.deliberate }
+      }
       whileTap={moves.session.tilePress}
       className="flex w-full flex-col items-stretch text-left"
       aria-label={`${piece.name}, $${piece.price}`}
@@ -169,6 +181,7 @@ function Photograph({
       <img
         src={piece.image}
         alt=""
+        draggable={false}
         className="h-full w-full scale-[1.03] object-cover"
       />
     </motion.span>
@@ -287,6 +300,8 @@ function OpenPiece({
 function Gallery({ piece }: { piece: Recommendation }) {
   const rail = useRef<HTMLDivElement>(null);
   const [frame, setFrame] = useState(0);
+  const drag = useRef<{ from: number; at: number } | null>(null);
+  const [dragging, setDragging] = useState(false);
 
   const onScroll = () => {
     const node = rail.current;
@@ -294,13 +309,58 @@ function Gallery({ piece }: { piece: Recommendation }) {
     setFrame(Math.round(node.scrollLeft / node.clientWidth));
   };
 
+  /**
+   * DRAGGING WITH A MOUSE.
+   *
+   * On a phone this scroller is already swipeable. On a laptop it was not — a
+   * horizontal scroller only responds to a horizontal wheel, which on most
+   * machines means holding shift. Nobody demoing this is going to do that.
+   *
+   * So a press-and-drag moves the rail directly, and letting go hands it back
+   * to the browser's own snapping. Snapping is turned off mid-drag, because
+   * snap points fight a scrollLeft that is being set every frame.
+   */
+  const startDrag = (event: React.PointerEvent) => {
+    const node = rail.current;
+    if (!node) return;
+    drag.current = { from: event.clientX, at: node.scrollLeft };
+    setDragging(true);
+    node.setPointerCapture(event.pointerId);
+  };
+
+  const moveDrag = (event: React.PointerEvent) => {
+    const node = rail.current;
+    if (!node || !drag.current) return;
+    node.scrollLeft = drag.current.at - (event.clientX - drag.current.from);
+  };
+
+  const endDrag = (event: React.PointerEvent) => {
+    const node = rail.current;
+    if (!node || !drag.current) return;
+    drag.current = null;
+    setDragging(false);
+    node.releasePointerCapture(event.pointerId);
+    /* Land on the nearest frame ourselves. Re-enabling snap alone does not
+       move an already-settled scroll position. */
+    node.scrollTo({
+      left: Math.round(node.scrollLeft / node.clientWidth) * node.clientWidth,
+      behavior: 'smooth',
+    });
+  };
+
   return (
     <div className="relative">
       <div
         ref={rail}
         onScroll={onScroll}
+        onPointerDown={startDrag}
+        onPointerMove={moveDrag}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
         data-gallery
-        className="flex w-full snap-x snap-mandatory overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className={`flex w-full overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
+          dragging ? 'cursor-grabbing select-none' : 'cursor-grab snap-x snap-mandatory'
+        }`}
       >
         {piece.gallery.map((shot, index) =>
           index === 0 ? (
@@ -312,14 +372,16 @@ function Gallery({ piece }: { piece: Recommendation }) {
               transition={moves.session.open}
               className="relative block h-[452px] w-full min-w-full shrink-0 snap-center overflow-hidden bg-[var(--paper-warm)]"
             >
-              <img src={shot} alt={piece.name} className="h-full w-full scale-[1.03] object-cover" />
+              <img src={shot} alt={piece.name} draggable={false}
+        className="h-full w-full scale-[1.03] object-cover" />
             </motion.span>
           ) : (
             <span
               key={shot}
               className="relative block h-[452px] w-full min-w-full shrink-0 snap-center overflow-hidden bg-[var(--paper-warm)]"
             >
-              <img src={shot} alt="" className="h-full w-full scale-[1.03] object-cover" />
+              <img src={shot} alt="" draggable={false}
+        className="h-full w-full scale-[1.03] object-cover" />
             </span>
           ),
         )}
@@ -400,7 +462,8 @@ export function CollapsedPiece({
         <img
           src={piece.gallery[0]}
           alt=""
-          className="h-full w-full scale-[1.03] object-cover"
+          draggable={false}
+        className="h-full w-full scale-[1.03] object-cover"
         />
       </motion.span>
     </motion.div>

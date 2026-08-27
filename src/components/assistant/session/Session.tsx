@@ -161,6 +161,9 @@ export function Session({
 
   /* --- The second half: one piece, and the conversation about it ---------- */
 
+  /** The piece that has just been tapped, while the other three clear away. */
+  const [choosing, setChoosing] = useState<string>();
+
   /** Which piece is open. Undefined means the grid is showing. */
   const [opened, setOpened] = useState<string | undefined>(
     from.bagged ? perfectFit.pieces[0].id : undefined,
@@ -250,30 +253,52 @@ export function Session({
 
   /* --- Opening a piece and asking about it -------------------------------- */
 
-  /** Tapping a piece in the grid. The photograph grows in place. */
+  /**
+   * Tapping a piece in the grid, in two beats.
+   *
+   * First the three that were not chosen clear away, leaving the tapped one
+   * exactly where it was. Only then does it open out, and because it is the
+   * same photograph it grows in place rather than being replaced.
+   *
+   * Opening in one beat is what made this feel disjointed: the expanded piece
+   * appeared below the grid, shoved the conversation down, and then the grid
+   * vanished from underneath it.
+   */
   const openPiece = (id: string) => {
+    if (choosing || opened) return;
+    setChoosing(id);
     window.setTimeout(() => {
       setOpened(id);
+      setChoosing(undefined);
       setPieceFolded(false);
     }, pace.beforeOpening);
   };
 
-  /** Asking one of the questions the piece has raised. */
+  /**
+   * Asking one of the questions the piece has raised.
+   *
+   * The piece folds FIRST, and the answer follows it. Asking a question is the
+   * moment the conversation takes over from the photograph, so the photograph
+   * gets out of the way before the words arrive — not after them. Doing it the
+   * other way round meant the answer typed itself out and the piece then
+   * collapsed underneath it, which moved everything the shopper was reading.
+   */
   const ask = (id: string) => {
     if (asked.includes(id)) return;
     setAnswered(false);
-    setAsked((current) => [...current, id]);
+
+    const append = () => setAsked((current) => [...current, id]);
+
+    if (opened && !pieceFolded) {
+      setPieceFolded(true);
+      window.setTimeout(append, pace.afterFold);
+    } else {
+      append();
+    }
   };
 
-  /**
-   * An answer has been given. The piece stops being the subject at that
-   * point, so it folds back to a line — but only after the answer has had
-   * long enough to be read.
-   */
-  const onAnswered = () => {
-    setAnswered(true);
-    window.setTimeout(() => setPieceFolded(true), pace.beforeCollapsing);
-  };
+  /** An answer has been given, so the next thing can be offered. */
+  const onAnswered = () => setAnswered(true);
 
   /**
    * Says something out loud, then does it.
@@ -325,6 +350,16 @@ export function Session({
     askRef.current?.focus();
   }
 
+  /**
+   * What the microphone does right now, if anything.
+   *
+   * Only ever one thing at a time, because only one step of the session is
+   * spoken at any point. It is filled in as the suggestions are worked out
+   * below: a suggestion marked `spoken` hands its action here instead of
+   * taking a tap of its own.
+   */
+  let onSpeak: (() => void) | undefined;
+
   /* --- What the open section offers above the input -----------------------
    *
    * Only ever the suggestions of whatever the conversation is currently on.
@@ -352,11 +387,12 @@ export function Session({
           id: chip.id,
           label: chip.label,
           primary: chip.primary,
-          onSelect: chip.voice
-            ? () => speak(checkout.command, goToCheckout)
-            : focusAsk,
+          spoken: chip.voice,
+          onSelect: focusAsk,
         }),
       );
+      /* Checking out is said, not pressed. */
+      onSpeak = () => speak(checkout.command, goToCheckout);
     }
   } else if (reached(stage, 'pieces') && answered) {
     if (!opened && gridReady) {
@@ -376,13 +412,23 @@ export function Session({
           id: chip.id,
           label: chip.label,
           primary: chip.primary,
+          spoken: chip.voice,
           onSelect: () => {
-            if (chip.voice) speak(bag.command, addToBag);
-            else if (answers.some((a) => a.id === chip.id)) ask(chip.id);
+            if (answers.some((a) => a.id === chip.id)) ask(chip.id);
             else focusAsk();
           },
         }),
       );
+
+      /* Whichever of the offered steps is spoken becomes what the microphone
+         does. There is never more than one: asking about the metal is spoken
+         and asking about tarnishing is tapped, and once both are answered the
+         only spoken step left is putting it all in the bag. */
+      const said = offered.find((chip) => chip.voice);
+      if (said?.id === 'add-both') onSpeak = () => speak(bag.command, addToBag);
+      else if (said && answers.some((a) => a.id === said.id)) {
+        onSpeak = () => speak(answers.find((a) => a.id === said.id)!.question, () => ask(said.id));
+      }
     }
   }
 
@@ -447,6 +493,7 @@ export function Session({
             <PerfectFit
               innerRef={piecesRef}
               opened={opened}
+              choosing={choosing}
               folded={pieceFolded}
               onOpen={openPiece}
               onReopen={() => setPieceFolded(false)}
@@ -503,6 +550,7 @@ export function Session({
         inputRef={askRef}
         bagCount={bagCount}
         speaking={saying}
+        onSpeak={saying ? undefined : onSpeak}
         pay={
           checkoutSettled && !paid ? (
             <SwipeToPay label={checkout.pay} onPaid={onPaid} />

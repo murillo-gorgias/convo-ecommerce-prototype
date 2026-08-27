@@ -18,21 +18,34 @@ import { Lines, Said, useAfter } from './parts';
  *
  * What happens when the shopper asks something about a piece. It is a turn in
  * the conversation, not a panel: the question sits on the right in their own
- * words, and the answer runs full width underneath it. Neither one covers the
- * piece it is about.
+ * words, and the answer runs full width underneath it.
  *
- * An answer can carry two things beyond words.
+ * AN ANSWER ARRIVES IN PARTS, NEVER AT ONCE
+ * A full answer here can be four things — a summary, a review that backs it
+ * up, a line that turns it into a next step, and the piece that step points
+ * at. Rendering those together produces a wall: it reads as a page that was
+ * fetched, and there is no order to follow through it.
  *
- * A REVIEW. Where the honest answer is "it depends on how you wear it", a
- * summary alone is a claim the assistant is making about itself. Quoting one
- * buyer, by name, with what they actually did, is evidence. The summary above
- * says what it means; the card below shows where it came from.
+ * So they are staged. The summary types itself out. A beat. The review card
+ * settles in under it. A beat. The closing line types. A beat. The piece it
+ * offers arrives last. Every gap is `pace.betweenParts`, and the whole thing
+ * only reports itself settled once the last part has landed.
  *
- * AN OFFER. Where the answer implies something — a care kit, after a question
- * about tarnishing — the piece is offered inside the answer, at the moment the
- * shopper is thinking about it. This is the difference between an upsell that
- * was earned by the conversation and a row of things other people bought.
+ * WHY A REVIEW IS THERE AT ALL
+ * Where the honest answer is "it depends on how you wear it", a summary alone
+ * is a claim the assistant is making about itself. Quoting one buyer, by name,
+ * with what they actually did, is evidence. The summary says what it means;
+ * the card shows where it came from.
+ *
+ * AND WHY AN OFFER IS
+ * Where the answer implies something — a care kit, after a question about
+ * tarnishing — the piece is offered at the moment the shopper is thinking
+ * about it. That is an upsell the conversation earned, rather than a row of
+ * things other people bought.
  */
+
+/** How far through an answer we are. Each part waits for the one before it. */
+type Part = 'question' | 'summary' | 'review' | 'closing' | 'offer' | 'done';
 
 export function Answer({
   answer,
@@ -41,16 +54,29 @@ export function Answer({
 }: {
   answer: AnswerContent;
   innerRef?: React.Ref<HTMLDivElement>;
-  /** Called once the whole answer has been given and shown. */
+  /** Called once every part of the answer has been given and shown. */
   onSettled?: () => void;
 }) {
-  const [speaking, setSpeaking] = useState(false);
-  const [said, setSaid] = useState(false);
+  const [part, setPart] = useState<Part>('question');
   const held = useRef<HTMLDivElement>(null);
 
   /* The question lands, and the assistant takes the same beat a person would
      take before answering it. */
-  useAfter(pace.afterSaid, true, () => setSpeaking(true));
+  useAfter(pace.afterSaid, part === 'question', () => setPart('summary'));
+
+  /* The parts that follow the summary, each after the one before it. Anything
+     this answer does not have is stepped straight past. */
+  useAfter(pace.betweenParts, part === 'review' && !answer.review, () => setPart('closing'));
+  useAfter(pace.betweenParts, part === 'closing' && !answer.closing, () => setPart('offer'));
+  useAfter(pace.betweenParts, part === 'offer' && !answer.offer, () => setPart('done'));
+
+  /* And the ones it does have, held long enough to be taken in. */
+  useAfter(pace.betweenParts, part === 'review' && Boolean(answer.review), () =>
+    setPart('closing'),
+  );
+  useAfter(pace.betweenParts, part === 'offer' && Boolean(answer.offer), () => setPart('done'));
+
+  useAfter(pace.afterSpeech, part === 'done', () => onSettled?.());
 
   /* The thread follows the question up, so the answer types out where the
      shopper is already looking rather than below the fold. */
@@ -62,8 +88,9 @@ export function Answer({
     return () => window.clearTimeout(timer);
   }, []);
 
-  /* Everything the answer shows has arrived; the turn is over. */
-  useAfter(pace.afterSpeech, said, () => onSettled?.());
+  const reached = (at: Part) =>
+    ['question', 'summary', 'review', 'closing', 'offer', 'done'].indexOf(part) >=
+    ['question', 'summary', 'review', 'closing', 'offer', 'done'].indexOf(at);
 
   return (
     <motion.div
@@ -78,22 +105,19 @@ export function Answer({
     >
       <Said>{answer.question}</Said>
 
-      <Lines start={speaking} onDone={() => setSaid(true)}>
+      <Lines start={reached('summary')} onDone={() => setPart('review')}>
         {answer.lines}
       </Lines>
 
-      {said && answer.review && <ReviewCard review={answer.review} />}
+      {reached('review') && answer.review && <ReviewCard review={answer.review} />}
 
-      {said && answer.closing && (
-        <motion.p
-          {...moves.session.line}
-          className="w-full font-[var(--font-ui)] text-[14px] leading-[var(--type-said-line)] text-black"
-        >
-          {answer.closing}
-        </motion.p>
+      {reached('closing') && answer.closing && (
+        <Lines start onDone={() => setPart('offer')}>
+          {[answer.closing]}
+        </Lines>
       )}
 
-      {said && answer.offer && <OfferRow offer={answer.offer} />}
+      {reached('offer') && answer.offer && <OfferRow offer={answer.offer} />}
     </motion.div>
   );
 }
@@ -160,6 +184,7 @@ export function OfferRow({ offer }: { offer: Offer }) {
       <img
         src={offer.image}
         alt=""
+        draggable={false}
         className="h-24 w-[93px] shrink-0 rounded-[12px] border border-[var(--photo-border)] object-cover shadow-[var(--card-shadow)]"
       />
 

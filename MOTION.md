@@ -117,6 +117,8 @@ it is shown because the last one **went quiet**.
 | `beforeSpeech` | 340 | A section appears, before it starts speaking |
 | `afterSpeech` | 460 | A question finishes, before what it asks for arrives |
 | `afterFold` | 700 | A section folds shut, before anything is said about it |
+| `betweenParts` | 620 | Between the parts of one answer, or one block |
+| `betweenRows` | 180 | Between the rows inside a card |
 | `betweenSections` | 950 | A section goes quiet, before the next one appears |
 | `beforeOpening` | 380 | A piece is tapped, before it opens out |
 | `beforeCollapsing` | 900 | An answer finishes, before the piece it was about folds away |
@@ -144,6 +146,26 @@ a line wrapped onto a new row.
 
 **Want the whole thing quicker for a demo?** Lower `pace.typing.target` and
 `pace.betweenSections`. Those two carry most of the running time.
+
+### Nothing composite arrives whole
+
+The rule that matters most, and the one that keeps getting broken by accident:
+**a block made of several things arrives one thing at a time.**
+
+A full answer is often four things. It arrives like this:
+
+    summary types ──▶ beat ──▶ review card ──▶ beat ──▶ closing types ──▶ beat ──▶ the piece offered
+
+A card is several rows. It arrives like this:
+
+    the line that introduces it types ──▶ card ──▶ row ──▶ row ──▶ row ──▶ button
+
+Every gap between parts is `pace.betweenParts`; every gap between rows of a card is
+`pace.betweenRows`. Both the bag and the checkout totals build themselves this way, and so
+does the order confirmation.
+
+Rendering a block whole reads as a page that was fetched. Building it reads as someone
+working it out, which is the only thing separating this from a search result.
 
 ### The order a section arrives in
 
@@ -246,6 +268,21 @@ These caught us once each and are worth knowing before debugging a missing anima
 - **`layout` on the thread** re-measures the whole column on every DOM change, so everything
   drifted while a line was being typed. The thread is a plain `div`; sections animate
   themselves.
+- **Keeping an outgoing block in the flow** while the incoming one mounts puts both in the
+  column at once. Opening a piece shoved the conversation down and then snapped it back. The
+  pieces section renders exactly one of its three states and lets the shared `layoutId` carry
+  the change.
+
+### Opening a piece, in two beats
+
+    tap ──▶ the other three clear ──▶ the one left morphs to full width
+
+`pace.beforeOpening` is the gap. The tapped piece never moves during the first beat — it is
+still exactly where it was — so the morph starts from where the finger landed.
+
+Asking a question folds it the same way round: **the piece folds first, and the answer
+follows**. Asking is the moment the conversation takes over from the photograph, so the
+photograph gets out of the way before the words arrive rather than after them.
 
 **And one in `SwipeToPay.tsx`:** `COMMIT` (0.72) — how far along the track counts as
 carried through. Let go before that and the knob returns.

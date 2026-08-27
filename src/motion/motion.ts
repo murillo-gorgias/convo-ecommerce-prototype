@@ -144,6 +144,18 @@ export const pace = {
   /** After a section folds shut, before the assistant says anything about it. */
   afterFold: 700,
 
+  /**
+   * Between the parts of one answer. An answer is often several things — a
+   * summary, a review that backs it up, a line that turns it into a next step,
+   * and the piece that step points at. They arrive in that order, with this
+   * long between them, because an answer that lands whole is a page and an
+   * answer that lands in parts is someone talking.
+   */
+  betweenParts: 620,
+
+  /** Between the rows of a card, once the card itself has arrived. */
+  betweenRows: 180,
+
   /** After a section is completely settled, before the next one appears. */
   betweenSections: 950,
 
@@ -296,6 +308,15 @@ export const moves = {
       animate: { opacity: 1 },
       exit: { opacity: 0 },
       transition: { duration: duration.base, ease: easing.even },
+    },
+
+    /**
+     * The microphone, when speaking is the next thing to do. A slow breath
+     * rather than a flash — it should read as available, not as an alarm.
+     */
+    micCue: {
+      animate: { scale: [1, 1.16, 1], opacity: [0.55, 1, 0.55] },
+      transition: { duration: 2.4, ease: easing.even, repeat: Infinity },
     },
 
     /** Press feedback on the pill and on controls. */

@@ -253,7 +253,10 @@ export const perfectFit = {
  */
 const pieceChips: Chip[] = [
   { id: 'reviews', label: 'What reviews say?' },
-  { id: 'vermeil', label: "What's 18k vermeil?" },
+  /* Spoken, not tapped — the design shows this one arriving as a live
+     transcript in the input. The chip stays as a prompt; the microphone is
+     what says it. */
+  { id: 'vermeil', label: "What's 18k vermeil?", voice: true },
   { id: 'tarnish', label: 'Does it tarnish?' },
   { id: 'care', label: 'How to care for it' },
 ];
@@ -494,4 +497,5 @@ export const chips = {
 /** The permanent field along the bottom. */
 export const dock = {
   placeholder: 'Ask anything',
+  speak: 'Say it',
 } as const;

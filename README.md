@@ -37,11 +37,19 @@ npm run dev
   Once answered, a section folds into a single line and the images you chose travel into it, so
   you can always scroll back and see how you got here.
 
-- **One piece, opened** — tapping a piece grows that photograph to the full width of the
-  conversation. It shows the name, the price, the rating, the material and the bag, and
+- **One piece, opened** — tapping a piece clears the other three away, then grows that
+  photograph to the full width of the conversation. Its photographs are swiped through with
+  a finger or dragged with a mouse. It shows the name, the price, the rating, the material and the bag, and
   nothing else. Everything a product page stacks up below the fold — what it is made of,
   whether it tarnishes, what buyers said — is asked for instead, and the answer arrives as a
-  reply underneath. Answers can carry a quoted review as evidence, or a piece worth adding.
+  reply underneath. An answer arrives in parts — the summary types out, then a quoted review
+  settles in as evidence, then a closing line, then the piece that line points at. Nothing
+  composite ever appears whole.
+
+- **Speaking** — asking what vermeil is, putting both pieces in the bag and checking out are
+  all said rather than pressed. The suggestion stays on screen as a prompt, the microphone
+  takes a slow pulse, and pressing it plays the command into the input as a live transcript
+  before anything happens.
 
 - **The bag** — no drawer over the conversation. What went in is said, shown as a card, and
   the thread carries on beneath it, with one piece suggested that goes with what is already

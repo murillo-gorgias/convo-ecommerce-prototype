@@ -3,7 +3,7 @@ import { motion } from 'motion/react';
 import { bag, checkout, confirmation } from '../../../content/journey';
 import { moves, pace } from '../../../motion/motion';
 import { ChevronDownIcon, VerifiedIcon } from '../icons';
-import { Said, useAfter } from './parts';
+import { Lines, Said, useAfter } from './parts';
 import { money } from './money';
 
 /**
@@ -28,11 +28,12 @@ export function Checkout({
   /** Called once the summary has been said, so the dock can offer the swipe. */
   onSettled: () => void;
 }) {
-  const [speaking, setSpeaking] = useState(false);
+  /** said → the summary is being spoken · card → the totals have arrived. */
+  const [part, setPart] = useState<'said' | 'summary' | 'card'>('said');
   const total = bag.items.reduce((sum, item) => sum + item.price, 0);
 
-  useAfter(pace.afterSaid, true, () => setSpeaking(true));
-  useAfter(pace.afterSpeech, speaking, onSettled);
+  useAfter(pace.afterSaid, part === 'said', () => setPart('summary'));
+  useAfter(pace.afterSpeech, part === 'card', onSettled);
 
   return (
     <motion.div
@@ -43,19 +44,19 @@ export function Checkout({
     >
       <Said>{checkout.command}</Said>
 
-      {speaking && (
-        <>
-          <motion.p
-            {...moves.session.line}
-            className="w-full font-[var(--font-ui)] text-[14px] leading-[var(--type-said-line)] text-black"
-          >
-            {checkout.summary.lead}
-            <strong className="font-semibold">{checkout.summary.place}</strong>
-            {checkout.summary.middle}
-            <strong className="font-semibold">{checkout.summary.card}</strong>
-            {checkout.summary.tail}
-          </motion.p>
+      {/* The summary is said first and the totals follow it. Showing the card
+          at the same moment turns the sentence into a caption for it, when the
+          sentence is the part that answers the question. */}
+      {part !== 'said' && (
+        <Lines start onDone={() => setPart('card')}>
+          {[
+            `${checkout.summary.lead}${checkout.summary.place}${checkout.summary.middle}${checkout.summary.card}${checkout.summary.tail}`,
+          ]}
+        </Lines>
+      )}
 
+      {part === 'card' && (
+        <>
           <motion.div
             {...moves.session.card}
             className="flex w-full flex-col gap-3 rounded-[var(--card-radius)] bg-[var(--card)] p-4"
@@ -63,6 +64,7 @@ export function Checkout({
             {/* The two pieces sit overlapped rather than listed. At this point
                 what is in the bag has already been agreed; this is a receipt,
                 not a list to review again. */}
+            <Row index={0}>
             <div className="flex items-center gap-3">
               <span className="relative h-16 w-[73px] shrink-0">
                 <img
@@ -93,24 +95,29 @@ export function Checkout({
                 <ChevronDownIcon size={20} />
               </button>
             </div>
+            </Row>
 
-            <div className="flex w-full items-start justify-between">
-              <span className="font-[var(--font-ui)] text-[12px] font-medium leading-[var(--type-said-line)] text-[var(--card-line-label)]">
-                {checkout.lines.shipping}
-              </span>
-              <span className="font-[var(--font-ui)] text-[14px] leading-[var(--type-said-line)] text-[var(--positive)]">
-                {checkout.lines.shippingValue}
-              </span>
-            </div>
+            <Row index={1}>
+              <div className="flex w-full items-start justify-between">
+                <span className="font-[var(--font-ui)] text-[12px] font-medium leading-[var(--type-said-line)] text-[var(--card-line-label)]">
+                  {checkout.lines.shipping}
+                </span>
+                <span className="font-[var(--font-ui)] text-[14px] leading-[var(--type-said-line)] text-[var(--positive)]">
+                  {checkout.lines.shippingValue}
+                </span>
+              </div>
+            </Row>
 
-            <div className="flex w-full items-start justify-between">
-              <span className="font-[var(--font-ui)] text-[length:var(--type-label-size)] font-semibold uppercase leading-[var(--type-said-line)] tracking-[var(--type-label-tracking)] text-black">
-                {checkout.lines.grandTotal}
-              </span>
-              <span className="font-[var(--font-ui)] text-[14px] leading-[var(--type-said-line)] text-black">
-                {money(total)}
-              </span>
-            </div>
+            <Row index={2}>
+              <div className="flex w-full items-start justify-between">
+                <span className="font-[var(--font-ui)] text-[length:var(--type-label-size)] font-semibold uppercase leading-[var(--type-said-line)] tracking-[var(--type-label-tracking)] text-black">
+                  {checkout.lines.grandTotal}
+                </span>
+                <span className="font-[var(--font-ui)] text-[14px] leading-[var(--type-said-line)] text-black">
+                  {money(total)}
+                </span>
+              </div>
+            </Row>
           </motion.div>
         </>
       )}
@@ -127,7 +134,10 @@ export function Confirmation({
 }: {
   innerRef?: React.Ref<HTMLDivElement>;
 }) {
+  const [part, setPart] = useState<'thanks' | 'said' | 'card'>('thanks');
   const total = bag.items.reduce((sum, item) => sum + item.price, 0);
+
+  useAfter(pace.betweenParts, part === 'thanks', () => setPart('said'));
 
   return (
     <motion.div
@@ -145,15 +155,13 @@ export function Confirmation({
         </span>
       </div>
 
-      <motion.p
-        {...moves.session.line}
-        className="w-full font-[var(--font-ui)] text-[14px] leading-[var(--type-said-line)] text-black"
-      >
-        {confirmation.lead}
-        <strong className="font-semibold">{confirmation.email}</strong>
-        {confirmation.tail}
-      </motion.p>
+      {part !== 'thanks' && (
+        <Lines start onDone={() => setPart('card')}>
+          {[`${confirmation.lead}${confirmation.email}${confirmation.tail}`]}
+        </Lines>
+      )}
 
+      {part === 'card' && (
       <motion.div
         {...moves.session.card}
         className="flex w-full items-center gap-3 rounded-[var(--card-radius)] bg-[var(--card)] p-4"
@@ -170,6 +178,26 @@ export function Confirmation({
           {money(total)}
         </span>
       </motion.div>
+      )}
+    </motion.div>
+  );
+}
+
+/**
+ * One row of a card, arriving after the row above it. The same idea as the
+ * bag's: a card that fills in from the top reads as being worked out.
+ */
+function Row({ index, children }: { index: number; children: React.ReactNode }) {
+  return (
+    <motion.div
+      initial={moves.session.cardRow.initial}
+      animate={moves.session.cardRow.animate}
+      transition={{
+        ...moves.session.cardRow.transition,
+        delay: 0.12 + index * (pace.betweenRows / 1000),
+      }}
+    >
+      {children}
     </motion.div>
   );
 }

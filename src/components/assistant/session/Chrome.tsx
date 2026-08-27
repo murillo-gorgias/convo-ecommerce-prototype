@@ -92,6 +92,13 @@ export type Suggestion = {
   /** The one suggestion that moves the session on. Dark, so it reads as the
    *  next step rather than another option. */
   primary?: boolean;
+  /**
+   * This one is SAID, not pressed. It stays on screen as a prompt — it is
+   * still what you could ask — but the microphone is what asks it. Tapping it
+   * does nothing on purpose: a chip that silently performed a spoken command
+   * would make the voice interaction a decoration.
+   */
+  spoken?: boolean;
 };
 
 export function Dock({
@@ -100,6 +107,7 @@ export function Dock({
   bagCount = 0,
   pay,
   speaking,
+  onSpeak,
 }: {
   suggestions: Suggestion[];
   inputRef?: React.Ref<HTMLInputElement>;
@@ -109,6 +117,11 @@ export function Dock({
   pay?: React.ReactNode;
   /** What the shopper is currently saying out loud, shown as a live transcript. */
   speaking?: string;
+  /**
+   * Set when the next step is something to say. The microphone takes a slow
+   * pulse and this runs when it is pressed.
+   */
+  onSpeak?: () => void;
 }) {
   return (
     <motion.div
@@ -138,9 +151,12 @@ export function Dock({
               <motion.button
                 key={suggestion.id}
                 {...moves.session.chip}
-                whileTap={moves.assistant.press}
-                onClick={suggestion.onSelect}
+                whileTap={suggestion.spoken ? undefined : moves.assistant.press}
+                onClick={suggestion.spoken ? undefined : suggestion.onSelect}
+                aria-disabled={suggestion.spoken || undefined}
                 className={`shrink-0 whitespace-nowrap rounded-[32px] border border-[var(--chip-border)] px-4 py-[11px] font-[var(--font-ui)] text-[12px] font-medium leading-[15px] ${
+                  suggestion.spoken ? 'cursor-default' : ''
+                } ${
                   suggestion.primary
                     ? 'bg-[var(--control-dark)] text-white'
                     : 'bg-[var(--chip)] text-black'
@@ -187,9 +203,28 @@ export function Dock({
                 placeholder={dock.placeholder}
                 className="h-full min-w-0 flex-1 bg-transparent font-[var(--font-ui)] text-[12px] text-black outline-none placeholder:text-black/60"
               />
-              <motion.span whileTap={moves.assistant.press} className="shrink-0 text-[var(--ink-soft)]">
-                <MicIcon size={16} />
-              </motion.span>
+              {/* The microphone is a real control whenever the next step is
+                  something to say, and inert decoration the rest of the time.
+                  The halo behind it is what marks the difference. */}
+              <motion.button
+                type="button"
+                onClick={onSpeak}
+                aria-label={onSpeak ? dock.speak : undefined}
+                whileTap={onSpeak ? moves.assistant.press : undefined}
+                className="relative shrink-0 text-[var(--ink-soft)]"
+              >
+                {onSpeak && (
+                  <motion.span
+                    aria-hidden
+                    animate={moves.assistant.micCue.animate}
+                    transition={moves.assistant.micCue.transition}
+                    className="absolute -inset-[7px] rounded-full bg-[var(--chip)]"
+                  />
+                )}
+                <span className="relative block">
+                  <MicIcon size={16} />
+                </span>
+              </motion.button>
             </>
           )}
         </div>

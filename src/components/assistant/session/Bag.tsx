@@ -1,9 +1,10 @@
+import { useState } from 'react';
 import { motion } from 'motion/react';
 import { bag, styleWith } from '../../../content/journey';
-import { moves, stagger } from '../../../motion/motion';
+import { moves, pace } from '../../../motion/motion';
 import { GripIcon } from '../icons';
 import { OfferRow } from './Answer';
-import { Label, Line, Section, useSectionReveal } from './parts';
+import { Label, Line, Lines, Section, useAfter, useSectionReveal } from './parts';
 import { money } from './money';
 
 /**
@@ -17,10 +18,15 @@ import { money } from './money';
  * chose. So the bag arrives as the next thing said, and the conversation
  * carries on underneath it.
  *
- * Below it, one piece that goes with what is already in there. It earns its
- * place by naming the piece it pairs with, which is something only a bag that
- * knows the conversation can do.
+ * It arrives in parts, like every other block here: the line that says what
+ * landed is typed first, then the card, then the rows inside the card in
+ * order, then the button. Below all of it, one piece that goes with what is
+ * already in there — which earns its place by naming the piece it pairs with,
+ * something only a bag that knows the conversation can do.
  */
+
+/** How far through the bag we are. */
+type Part = 'said' | 'card' | 'pairing';
 
 export function Bag({
   innerRef,
@@ -31,7 +37,12 @@ export function Bag({
   onCheckOut: () => void;
   onSettled: () => void;
 }) {
+  const [part, setPart] = useState<Part>('said');
   const subtotal = bag.items.reduce((sum, item) => sum + item.price, 0);
+
+  /* The card holds for a beat before the pairing is raised, so the bag is read
+     as a bag rather than as the top half of an upsell. */
+  useAfter(pace.betweenParts, part === 'card', () => setPart('pairing'));
 
   return (
     <motion.div
@@ -42,57 +53,87 @@ export function Bag({
     >
       {/* What landed, named. The two pieces are set in bold because they are
           the only part of the sentence worth checking. */}
-      <motion.p
-        {...moves.session.line}
-        className="w-full font-[var(--font-ui)] text-[14px] leading-[var(--type-said-line)] text-black"
-      >
-        <strong className="font-semibold">{bag.confirmation.first}</strong>
-        {bag.confirmation.join}
-        <strong className="font-semibold">{bag.confirmation.second}</strong>
-        {bag.confirmation.tail}
-      </motion.p>
+      <Lines start onDone={() => setPart('card')}>
+        {[`${bag.confirmation.first} and ${bag.confirmation.second}${bag.confirmation.tail}`]}
+      </Lines>
 
-      <motion.div
-        {...moves.session.card}
-        className="flex w-full flex-col gap-3 rounded-[var(--card-radius)] bg-[var(--card)] p-4"
-      >
-        <span className="flex justify-center text-black">
-          <GripIcon />
-        </span>
-
-        {bag.items.map((item, index) => (
-          <motion.div
-            key={item.id}
-            {...moves.session.cardRow}
-            transition={{ ...moves.session.cardRow.transition, delay: 0.1 + index * stagger.base }}
-            className="flex items-center gap-3"
-          >
-            <img src={item.image} alt="" className="h-16 w-16 rounded-[12px] object-cover" />
-            <span className="flex-1 font-[var(--font-ui)] text-[14px] leading-[var(--type-said-line)] text-black">
-              {item.name}
-            </span>
-            <span className="font-[var(--font-ui)] text-[14px] leading-[var(--type-said-line)] text-[var(--card-line-label)]">
-              {money(item.price)}
-            </span>
-          </motion.div>
-        ))}
-
-        <span className="mt-1 h-px w-full bg-black/[0.06]" />
-
-        <CardLine label={bag.lines.subtotal} value={money(subtotal)} />
-        <CardLine label={bag.lines.shipping} value={bag.lines.shippingValue} />
-        <CardLine label={bag.lines.total} value={money(subtotal)} strong />
-
-        <motion.button
-          whileTap={moves.assistant.press}
-          onClick={onCheckOut}
-          className="mt-1 w-full rounded-[32px] border border-[var(--control-border)] bg-[var(--control-dark)] px-4 py-2 font-[var(--font-ui)] text-[10px] font-medium text-white"
+      {part !== 'said' && (
+        <motion.div
+          {...moves.session.card}
+          className="flex w-full flex-col gap-3 rounded-[var(--card-radius)] bg-[var(--card)] p-4"
         >
-          {bag.checkOut}
-        </motion.button>
-      </motion.div>
+          <Row index={0}>
+            <span className="flex w-full justify-center text-black">
+              <GripIcon />
+            </span>
+          </Row>
 
-      <StyleWith onSettled={onSettled} />
+          {bag.items.map((item, index) => (
+            <Row key={item.id} index={index + 1}>
+              <div className="flex items-center gap-3">
+                <img
+                  src={item.image}
+                  alt=""
+                  draggable={false}
+                  className="h-16 w-16 rounded-[12px] object-cover"
+                />
+                <span className="flex-1 font-[var(--font-ui)] text-[14px] leading-[var(--type-said-line)] text-black">
+                  {item.name}
+                </span>
+                <span className="font-[var(--font-ui)] text-[14px] leading-[var(--type-said-line)] text-[var(--card-line-label)]">
+                  {money(item.price)}
+                </span>
+              </div>
+            </Row>
+          ))}
+
+          <Row index={3}>
+            <span className="block h-px w-full bg-black/[0.06]" />
+          </Row>
+          <Row index={4}>
+            <CardLine label={bag.lines.subtotal} value={money(subtotal)} />
+          </Row>
+          <Row index={5}>
+            <CardLine label={bag.lines.shipping} value={bag.lines.shippingValue} />
+          </Row>
+          <Row index={6}>
+            <CardLine label={bag.lines.total} value={money(subtotal)} strong />
+          </Row>
+          <Row index={7}>
+            <motion.button
+              whileTap={moves.assistant.press}
+              onClick={onCheckOut}
+              className="w-full rounded-[32px] border border-[var(--control-border)] bg-[var(--control-dark)] px-4 py-2 font-[var(--font-ui)] text-[10px] font-medium text-white"
+            >
+              {bag.checkOut}
+            </motion.button>
+          </Row>
+        </motion.div>
+      )}
+
+      {part === 'pairing' && <StyleWith onSettled={onSettled} />}
+    </motion.div>
+  );
+}
+
+/**
+ * One row of a card, arriving after the row above it.
+ *
+ * A card whose contents all appear together reads as a receipt that was
+ * printed. Filling it in from the top reads as it being worked out, which is
+ * what the assistant is doing.
+ */
+function Row({ index, children }: { index: number; children: React.ReactNode }) {
+  return (
+    <motion.div
+      initial={moves.session.cardRow.initial}
+      animate={moves.session.cardRow.animate}
+      transition={{
+        ...moves.session.cardRow.transition,
+        delay: 0.12 + index * (pace.betweenRows / 1000),
+      }}
+    >
+      {children}
     </motion.div>
   );
 }
@@ -136,20 +177,22 @@ function CardLine({
 
 function StyleWith({ onSettled }: { onSettled: () => void }) {
   const { speaking, ready, onSpoken } = useSectionReveal();
+  const [offered, setOffered] = useState(false);
+
+  /* The piece follows the line that introduces it, rather than arriving with
+     it — the same rule every other block here follows. */
+  useAfter(pace.betweenParts, ready, () => {
+    setOffered(true);
+    onSettled();
+  });
 
   return (
     <Section>
       <Label>{styleWith.label}</Label>
-      <Line
-        start={speaking}
-        onDone={() => {
-          onSpoken();
-          onSettled();
-        }}
-      >
+      <Line start={speaking} onDone={onSpoken}>
         {styleWith.prompt}
       </Line>
-      {ready && <OfferRow offer={styleWith.piece} />}
+      {offered && <OfferRow offer={styleWith.piece} />}
     </Section>
   );
 }
