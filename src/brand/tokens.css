@@ -122,3 +122,36 @@
   --type-label-tracking: 0.96px;
   --type-said-line: 21px;
 }
+
+/* ==========================================================================
+ * PRODUCTS, THE BAG AND CHECKOUT
+ * The surfaces the second half of the session is built from. A card here is
+ * solid white rather than glass — it holds facts the shopper is checking, and
+ * anything they check should sit still.
+ * ========================================================================== */
+
+:root {
+  /* A solid card: a quoted review, the bag, the totals, the order. */
+  --card: #ffffff;
+  --card-radius: 12px;
+  --card-shadow: 0 4px 4px rgba(0, 0, 0, 0.03);
+
+  /* Text inside a card. */
+  --card-body: #353535;      /* the words of a review */
+  --card-meta: #585858;      /* who wrote it, when */
+  --card-line-label: #676767; /* "Shipping", "Bag Subtotal" */
+  --card-quiet: rgba(0, 0, 6, 0.46); /* "2 items", "Arriving Thu" */
+
+  /* The link that opens the rest of a review. */
+  --link-warm: #a26540;
+
+  /* Free shipping, and anything else that is good news. */
+  --positive: #4dba8f;
+
+  /* A dark control: Add, Check out, Swipe to pay. */
+  --control-dark: #2b2b2b;
+  --control-border: rgba(140, 90, 60, 0.1);
+
+  /* A product photograph sitting inside the conversation. */
+  --photo-border: rgba(0, 0, 0, 0.04);
+}

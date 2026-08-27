@@ -32,10 +32,24 @@ npm run dev
   | Vibe check | What are you drawn to? | Eight photographs of people wearing things. Tap any number, then confirm |
   | Style check | What are you wearing? | Four necklines. One tap |
   | Sizing | Where should it sit? | Three lengths, each shown worn. One tap |
-  | The perfect fit | — | Two pieces in a carousel, with price, rating, material and the bag |
+  | The perfect fit | Which one? | Four pieces as photographs, with a name, a price and one line saying why |
 
   Once answered, a section folds into a single line and the images you chose travel into it, so
   you can always scroll back and see how you got here.
+
+- **One piece, opened** — tapping a piece grows that photograph to the full width of the
+  conversation. It shows the name, the price, the rating, the material and the bag, and
+  nothing else. Everything a product page stacks up below the fold — what it is made of,
+  whether it tarnishes, what buyers said — is asked for instead, and the answer arrives as a
+  reply underneath. Answers can carry a quoted review as evidence, or a piece worth adding.
+
+- **The bag** — no drawer over the conversation. What went in is said, shown as a card, and
+  the thread carries on beneath it, with one piece suggested that goes with what is already
+  there.
+
+- **Checkout** — the address, the delivery and the card are already known, so nothing is
+  asked. The assistant states them, and paying is a swipe: the only deliberate gesture in the
+  session, for the only thing that cannot be undone.
 
 ### Adding or removing a section
 
@@ -52,6 +66,10 @@ one works the same way.
 | `src/content/` | Every word, image and section — the storefront in `store.ts`, the assistant's questions in `journey.ts` |
 | `src/motion/` | Every animation — see [MOTION.md](MOTION.md) |
 | `src/components/` | The components, which contain none of the above |
+
+Two review surfaces sit outside the journey: `/#thinking` compares the thinking animations,
+and `/#session` opens the guided session on its own, so the questions, the pieces and
+checkout can be watched without replaying the storefront each time.
 
 Swapping in a different brand means changing `src/brand/` and `src/content/`. The experience
 itself does not change.

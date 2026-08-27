@@ -3,7 +3,7 @@ import { brand } from '../../../content/store';
 import { assistantCopy } from '../../../content/assistant';
 import { dock } from '../../../content/journey';
 import { moves } from '../../../motion/motion';
-import { ChevronLeftIcon, CloseIcon, MicIcon } from '../icons';
+import { CartIcon, ChevronLeftIcon, CloseIcon, MicIcon } from '../icons';
 
 /**
  * ============================================================================
@@ -85,14 +85,27 @@ function GlassButton({
  * come and go with the section, which is why they animate rather than appear.
  * ========================================================================== */
 
-export type Suggestion = { id: string; label: string; onSelect: () => void };
+export type Suggestion = {
+  id: string;
+  label: string;
+  onSelect: () => void;
+  /** The one suggestion that moves the session on. Dark, so it reads as the
+   *  next step rather than another option. */
+  primary?: boolean;
+};
 
 export function Dock({
   suggestions,
   inputRef,
+  bagCount = 0,
+  pay,
 }: {
   suggestions: Suggestion[];
   inputRef?: React.Ref<HTMLInputElement>;
+  /** How many things are in the bag. The button only exists once it is not empty. */
+  bagCount?: number;
+  /** Replaces the input while paying is the only thing left to do. */
+  pay?: React.ReactNode;
 }) {
   return (
     <motion.div
@@ -105,10 +118,10 @@ export function Dock({
           <motion.div
             layout
             initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 39 }}
+            animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={moves.session.fold}
-            className="flex w-full items-center justify-end gap-1 overflow-hidden"
+            className="flex w-full flex-wrap items-center justify-end gap-1 overflow-hidden"
           >
             <AnimatePresence initial={false} mode="popLayout">
               {suggestions.map((suggestion) => (
@@ -118,7 +131,11 @@ export function Dock({
                   {...moves.session.chip}
                   whileTap={moves.assistant.press}
                   onClick={suggestion.onSelect}
-                  className="shrink-0 rounded-[32px] border border-[var(--chip-border)] bg-[var(--chip)] px-3 py-3 font-[var(--font-ui)] text-[12px] font-medium leading-[15px] text-black"
+                  className={`shrink-0 rounded-[32px] border border-[var(--chip-border)] px-3 py-3 font-[var(--font-ui)] text-[12px] font-medium leading-[15px] ${
+                    suggestion.primary
+                      ? 'bg-[var(--control-dark)] text-white'
+                      : 'bg-[var(--chip)] text-black'
+                  }`}
                 >
                   {suggestion.label}
                 </motion.button>
@@ -128,16 +145,46 @@ export function Dock({
         )}
       </AnimatePresence>
 
-      <div className="flex h-10 w-full items-center justify-between rounded-[40px] border border-[var(--field-border)] bg-[var(--field-bg)] px-4 shadow-[0_4px_4px_rgba(0,0,0,0.04)]">
-        <input
-          ref={inputRef}
-          placeholder={dock.placeholder}
-          className="h-full flex-1 bg-transparent font-[var(--font-ui)] text-[12px] text-black outline-none placeholder:text-black/60"
-        />
-        <motion.span whileTap={moves.assistant.press} className="text-[var(--ink-soft)]">
-          <MicIcon size={16} />
-        </motion.span>
-      </div>
+      {/* Paying takes the whole strip. There is nothing to ask at that point,
+          and leaving the field there would invite a question the session is
+          about to stop being able to answer. */}
+      {pay ? (
+        <div className="w-full">{pay}</div>
+      ) : (
+        <motion.div layout transition={moves.session.fold} className="flex w-full items-center gap-2">
+          <div className="flex h-10 flex-1 items-center justify-between rounded-[40px] border border-[var(--field-border)] bg-[var(--field-bg)] px-4 shadow-[0_4px_4px_rgba(0,0,0,0.04)]">
+            <input
+              ref={inputRef}
+              placeholder={dock.placeholder}
+              className="h-full flex-1 bg-transparent font-[var(--font-ui)] text-[12px] text-black outline-none placeholder:text-black/60"
+            />
+            <motion.span whileTap={moves.assistant.press} className="text-[var(--ink-soft)]">
+              <MicIcon size={16} />
+            </motion.span>
+          </div>
+
+          <AnimatePresence initial={false}>
+            {bagCount > 0 && (
+              <motion.button
+                layout
+                {...moves.session.badge}
+                whileTap={moves.assistant.press}
+                aria-label={`${bagCount} in bag`}
+                className="relative grid h-10 w-10 shrink-0 place-items-center rounded-full border border-[var(--field-border)] bg-[var(--field-bg)] text-[var(--ink-soft)] shadow-[0_4px_4px_rgba(0,0,0,0.04)]"
+              >
+                <CartIcon size={18} />
+                <motion.span
+                  key={bagCount}
+                  {...moves.session.badge}
+                  className="absolute -right-[2px] -top-[2px] grid h-[18px] min-w-[18px] place-items-center rounded-full bg-[var(--ink-soft)] px-1 font-[var(--font-ui)] text-[10px] font-semibold leading-[14px] text-white"
+                >
+                  {bagCount}
+                </motion.span>
+              </motion.button>
+            )}
+          </AnimatePresence>
+        </motion.div>
+      )}
     </motion.div>
   );
 }

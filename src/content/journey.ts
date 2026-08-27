@@ -31,16 +31,29 @@ export type Tile = {
   alt: string;
 };
 
+/** One suggestion offered above the input. */
+export type Chip = {
+  id: string;
+  label: string;
+  /** The one that moves the session on. Drawn dark. */
+  primary?: boolean;
+};
+
 /** A piece the assistant ends up recommending. */
 export type Recommendation = {
   id: string;
   name: string;
   price: number;
+  /** One line under the name saying why this piece, not another. */
+  reason: string;
   rating: number;
   material: string;
   /** The dot shown beside the material name. */
   swatch: string;
+  /** The square shown in the grid. */
   image: string;
+  /** The larger shot shown once the piece is opened. */
+  open: string;
 };
 
 /* ==========================================================================
@@ -139,35 +152,305 @@ export const sizing = {
 
 /** ------------------------------------------------------------ THE PIECES ---
  * The answer, arrived at last — when it can actually be right.
+ *
+ * Four pieces, shown as photographs with a name, a price and one line saying
+ * why this one. Nothing else. Everything a product page would stack up is
+ * asked for instead, in the conversation, once a piece is opened.
  */
+const gridChips: Chip[] = [
+  { id: 'reviews', label: 'What do reviews say?' },
+  { id: 'worn', label: 'Show me these worn' },
+  { id: 'budget', label: 'Anything under $200?' },
+];
+
 export const perfectFit = {
   label: 'The perfect fit',
-  prompt: 'Okay, two of these are really good for you.',
-  moreLikeThis: 'More like this',
-  materialLabel: 'Material',
-  addToBag: 'Add to bag',
-  added: 'Added',
-  information: 'Product Information',
+  prompt: 'Okay, 4 candidates for really good fit for you.',
   pieces: [
     {
       id: 'floating-sapphire',
       name: 'Floating Sapphire Necklace',
       price: 188,
+      reason: 'Sits above the neckline',
       rating: 4.5,
-      material: '18k Gold Ver...',
+      material: '18k Gold Vermeil',
       swatch: '#E0A45E',
-      image: asset('/brand/products/rec-floating-sapphire.png'),
+      image: asset('/brand/products/worn-floating-sapphire.png'),
+      /** The larger worn shot, used once the piece is opened. */
+      open: asset('/brand/products/open-floating-sapphire.png'),
     },
     {
-      id: 'carmen-beaded',
-      name: 'Carmen Beaded Necklace',
-      price: 178,
-      rating: 4.5,
-      material: '18k Gold Ver...',
+      id: 'sapphire-cluster',
+      name: 'Sapphire Cluster Necklace',
+      price: 238,
+      reason: 'Same stone, more of it',
+      rating: 4.6,
+      material: '18k Gold Vermeil',
       swatch: '#E0A45E',
-      image: asset('/brand/products/rec-carmen-beaded.png'),
+      image: asset('/brand/products/worn-sapphire-cluster.png'),
+      open: asset('/brand/products/worn-sapphire-cluster.png'),
+    },
+    {
+      id: 'jojo-loop',
+      name: 'Jojo Loop Pendant',
+      price: 198,
+      reason: 'One clean shape',
+      rating: 4.7,
+      material: 'Silver + Vermeil',
+      swatch: '#C8C8C8',
+      image: asset('/brand/products/worn-jojo-loop.png'),
+      open: asset('/brand/products/worn-jojo-loop.png'),
+    },
+    {
+      id: 'herringbone',
+      name: 'Bold Herringbone Chain',
+      price: 338,
+      reason: 'Flat and liquid',
+      rating: 4.8,
+      material: '18k Gold Vermeil',
+      swatch: '#E0A45E',
+      image: asset('/brand/products/worn-herringbone.png'),
+      open: asset('/brand/products/worn-herringbone.png'),
     },
   ] satisfies Recommendation[],
+
+  /** Offered before a piece has been opened. */
+  chips: gridChips,
+} as const;
+
+/** ------------------------------------------------------- ONE PIECE, OPEN ---
+ * What is shown when a piece is tapped: the photograph, the name, the price,
+ * the rating, the material and the bag. Deliberately nothing else — the
+ * specifications, the care, the returns and the reviews are all things to ask
+ * about rather than scroll past.
+ */
+const pieceChips: Chip[] = [
+  { id: 'reviews', label: 'What reviews say?' },
+  { id: 'vermeil', label: "What's 18k vermeil?" },
+  { id: 'tarnish', label: 'Does it tarnish?' },
+  { id: 'care', label: 'How to care for it' },
+];
+
+export const productDetail = {
+  materialLabel: 'Material',
+  addToBag: 'Add to bag',
+  added: 'Added',
+  reopen: 'Open details',
+  /** Offered the moment a piece is opened, before anything has been asked. */
+  chips: pieceChips,
+} as const;
+
+/* ==========================================================================
+ * THE CONVERSATION ABOUT A PIECE
+ *
+ * Each entry is one thing the shopper can ask and what comes back. An answer
+ * is a few lines, and optionally a review to back it up and a piece to offer
+ * on the end of it.
+ *
+ * Adding a question means adding an entry here. Nothing else changes.
+ * ========================================================================== */
+
+/** A quoted review, shown whole under the answer that summarised it. */
+export type Review = {
+  author: string;
+  rating: number;
+  title: string;
+  body: string;
+};
+
+/** A single piece offered inside an answer. */
+export type Offer = {
+  id: string;
+  name: string;
+  price: number;
+  /** Shown under the name where the material is the point. */
+  note?: string;
+  image: string;
+};
+
+export type Answer = {
+  id: string;
+  /** What the shopper asks, in their own words. */
+  question: string;
+  /** The answer, one paragraph per line. */
+  lines: readonly string[];
+  review?: Review;
+  /** A last line after the review, turning the answer into a next step. */
+  closing?: string;
+  offer?: Offer;
+  /** What to offer next, once this answer has been given. */
+  chips: Chip[];
+};
+
+const careKit: Offer = {
+  id: 'care-kit',
+  name: 'Jewelry Care Kit',
+  price: 28,
+  image: asset('/brand/products/care-kit.png'),
+};
+
+export const answers: Answer[] = [
+  {
+    id: 'vermeil',
+    question: "What's vermeil? Is that real gold?",
+    lines: [
+      'Yes. Real 18k gold, over solid recycled sterling silver. No brass.',
+      "That's five times the plating on most gold-plated jewelry. It won't flake or turn your skin green, and it's safe for sensitive ears and necks.",
+    ],
+    chips: [
+      { id: 'tarnish', label: 'Does it tarnish?' },
+      { id: 'reviews', label: 'What reviews say?' },
+      { id: 'others', label: 'Show me other products' },
+    ],
+  },
+  {
+    id: 'tarnish',
+    question: 'Does it tarnish?',
+    lines: [
+      'Eventually, yes — but wearing it often actually slows that down. Polishing restores it fully.',
+      'Reviewer Priya wore hers daily for a year and expected it to go dull. It didn\'t. She takes it off for showers and wipes it with a cloth now and then, and she says it still looks like the day she got it.',
+    ],
+    review: {
+      author: 'Priya K.',
+      rating: 4.9,
+      title: 'Wore it every day for a year',
+      body: "Honestly expected it to go dull by now. It hasn't. I take it off for showers and that's about it — the odd wipe with the cloth it came with. Still looks like the day I got it.",
+    },
+    closing: 'Want me to add a care kit so it stays that way, or show you this one in solid gold?',
+    offer: careKit,
+    chips: [
+      { id: 'add-both', label: 'Add necklace to bag', primary: true },
+      { id: 'solid-gold', label: 'Show solid gold' },
+      { id: 'more-reviews', label: 'What other reviewers say?' },
+    ],
+  },
+];
+
+/** Marks on a review card. */
+export const reviewCopy = {
+  verified: 'Verified Buyer',
+  more: 'Read More',
+} as const;
+
+/** The button on an offered piece. */
+export const offerCopy = {
+  add: 'Add',
+  added: 'Added',
+} as const;
+
+/* ==========================================================================
+ * THE BAG
+ *
+ * Adding does not open a drawer over the conversation. The bag arrives as the
+ * next thing said, and the conversation carries on underneath it.
+ * ========================================================================== */
+
+const bagChips: Chip[] = [
+  { id: 'checkout', label: 'Check out', primary: true },
+  { id: 'browse', label: 'Keep browsing' },
+];
+
+export const bag = {
+  /** Spoken by the shopper to put both things in at once. */
+  command: 'Add necklace and care kit to cart',
+
+  /** Said as they land. The two names are emphasised where they appear. */
+  confirmation: {
+    lead: '',
+    first: 'Floating Sapphire Necklace',
+    join: ' and ',
+    second: 'Jewelry Care Kit',
+    tail: ' added to your bag.',
+  },
+
+  lines: {
+    subtotal: 'Bag Subtotal',
+    shipping: 'Shipping',
+    shippingValue: 'Calculated at checkout',
+    total: 'Estimated total',
+  },
+
+  checkOut: 'Check out',
+
+  /** What is in it. Prices are the real ones. */
+  items: [
+    {
+      id: 'floating-sapphire',
+      name: 'Floating Sapphire Necklace',
+      price: 188,
+      image: asset('/brand/products/open-floating-sapphire.png'),
+    },
+    {
+      id: 'care-kit',
+      name: 'Jewelry Care Kit',
+      price: 28,
+      image: asset('/brand/products/care-kit.png'),
+    },
+  ],
+
+  chips: bagChips,
+} as const;
+
+/** ---------------------------------------------------------- STYLE WITH ---
+ * The upsell, earned by what is already in the bag rather than by a rule.
+ */
+export const styleWith = {
+  label: 'Style with',
+  prompt: 'The Floating Sapphire goes really well with these. Wanna make it a kit?',
+  piece: {
+    id: 'tube-huggie-hoops',
+    name: 'Tube Huggie Hoops',
+    price: 98,
+    note: '18k Gold Vermeil',
+    image: asset('/brand/products/tube-huggie-hoops.png'),
+  } satisfies Offer,
+} as const;
+
+/* ==========================================================================
+ * CHECKOUT
+ *
+ * Everything is already known, so nothing is asked. The assistant states the
+ * address, the delivery and the card, and the only thing left to do is the
+ * one thing that cannot be undone.
+ * ========================================================================== */
+
+export const checkout = {
+  command: 'Check out to my Brooklyn address',
+
+  /** Said back, with the two facts worth checking set in bold. */
+  summary: {
+    lead: 'Going to your ',
+    place: 'Brooklyn',
+    middle: ' address, arriving Thursday with free shipping. Paying with the ',
+    card: 'Visa ending 4419',
+    tail: '.',
+  },
+
+  lines: {
+    total: 'Total',
+    items: '2 items',
+    shipping: 'Shipping',
+    shippingValue: 'Free',
+    grandTotal: 'Total',
+  },
+
+  pay: 'Swipe to pay',
+} as const;
+
+/* ==========================================================================
+ * AFTER IT IS PAID
+ * ========================================================================== */
+
+export const confirmation = {
+  thanks: `Thank you, ${shopper.firstName}!`,
+  lead: "Your order is confirmed. We've sent a receipt to ",
+  email: 'norawhitfield@gmail.com',
+  tail: " and you'll get tracking as soon as it ships.",
+  order: {
+    number: 'Order #48210',
+    arriving: 'Arriving Thu, Sep 3',
+  },
+  chips: [{ id: 'notify', label: 'Text me when it ships' }] as Chip[],
 } as const;
 
 /* ==========================================================================

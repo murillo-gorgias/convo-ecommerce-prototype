@@ -116,6 +116,9 @@ it is shown because the last one **went quiet**.
 | `afterSpeech` | 460 | A question finishes, before what it asks for arrives |
 | `afterFold` | 700 | A section folds shut, before anything is said about it |
 | `betweenSections` | 950 | A section goes quiet, before the next one appears |
+| `beforeOpening` | 380 | A piece is tapped, before it opens out |
+| `beforeCollapsing` | 900 | An answer finishes, before the piece it was about folds away |
+| `adding` | 1100 | The bag appears to work, before it says what it holds |
 | `beforeExpanding` | 1500 | The account visibly opens, before the session takes the screen |
 
 `beforeExpanding` is the longest wait in the prototype on purpose. It is the only moment the
@@ -156,6 +159,19 @@ Grouped under `moves.session`. The session is one scrolling conversation. Its mo
 follows a single rule: a section **arrives** softly and **leaves by folding** into the one
 line that records the answer. Nothing is ever thrown away on screen.
 
+### The second fold — a piece giving way to the conversation about it
+
+The pieces section folds like every other one, but it folds twice. Tapping a piece in the
+grid grows **that exact photograph** to the full width of the conversation — `layoutId`
+again, the same trick as the thumbnails. Then once an answer has been given, the piece stops
+being the subject and folds to a single line with `Open details` on it, and tapping that
+grows the same photograph back.
+
+This is why the recommendation is a grid and not a carousel. In the carousel, swiping
+sideways inside a piece moved through its photographs and swiping sideways outside it moved
+to the next piece — the same gesture, two meanings, no way to tell them apart. A tap has
+only one.
+
 ### The fold — the moment worth protecting
 
 When a section is answered, the images the shopper chose do not fade out here and fade in
@@ -188,15 +204,30 @@ currently 280 milliseconds.
 | `thumbTravel` | An image travelling into the confirmed line | The shared-layout transition |
 | `tick` | The tick landing on a confirmed section | |
 | `chip` | The suggestions above the input, arriving and leaving | |
-| `piece` | A recommended piece arriving in the carousel | Gap between them is `stagger.slow` |
+| `piece` | A recommended piece arriving in the grid | Gap between them is `stagger.base` |
 | `shimmer` | Light travelling across text while the account opens | |
 | `unlockMark` | A shape that opens, turns and closes again beside it | Door, to circle, to door |
+| `open` | A piece growing from its square in the grid to full width | The spring the photograph rides |
+| `openDetail` | Name, price, rating and controls fading in around it | Deliberately behind the photograph |
+| `collapsedPiece` | The piece folded back to one line with a way in | |
+| `review` | A quoted review arriving under the answer | |
+| `offer` | A piece offered inside an answer — the care kit, the pairing | |
+| `working` | A ring turning while the bag is being worked out | |
+| `card` | A white card: the bag, the totals, the order | |
+| `cardRow` | One line inside a card, arriving after it | Delay applied where used |
+| `badge` | The count landing on the bag button | |
+| `swipeReturn` | The pay knob returning when the swipe was not carried through | |
+| `swipeLabel` | The label dimming as the knob passes over it | |
+| `swipeFill` | The track filling once the swipe is complete | |
 
 **Two numbers outside this file**, both at the top of `Session.tsx`:
 
 - `CLEAR_TIME` — how long unchosen images take to clear before the fold. 280ms.
 - `ACKNOWLEDGE_TIME` — how long a one-answer section stays open after being tapped, so the
   tap is seen before the section closes over it. 460ms.
+
+**And one in `SwipeToPay.tsx`:** `COMMIT` (0.72) — how far along the track counts as
+carried through. Let go before that and the knob returns.
 
 **And two in `Assistant.tsx`:** `THINKING_TIME` (2200ms) is how long the assistant appears to
 think before it answers; `UNLOCK_TIME` (1900ms) is how long the account takes to open.

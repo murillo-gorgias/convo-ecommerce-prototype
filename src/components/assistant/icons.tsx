@@ -198,3 +198,43 @@ export function UserCheckIcon({ size = 12 }: { size?: number }) {
     </svg>
   );
 }
+
+/** The tick beside a verified review, and beside a confirmed order. */
+export function VerifiedIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" aria-hidden>
+      <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.2" />
+      <path
+        d="M5.4 8.2 7 9.8l3.6-3.6"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+/** The knob on the swipe-to-pay control. */
+export function ArrowRightIcon({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 20 20" fill="none" aria-hidden>
+      <path
+        d="M4 10h11m0 0-4-4m4 4-4 4"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+/** The short handle at the top of the bag card, marking it as draggable. */
+export function GripIcon({ size = 24 }: { size?: number }) {
+  return (
+    <svg width={size} height={6} viewBox="0 0 24 6" fill="none" aria-hidden>
+      <rect x="0" y="1.5" width="24" height="3" rx="1.5" fill="currentColor" opacity="0.14" />
+    </svg>
+  );
+}

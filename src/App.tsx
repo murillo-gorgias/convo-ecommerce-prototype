@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Storefront } from './components/store/Storefront';
 import { Assistant } from './components/assistant/Assistant';
 import { ThinkingGallery } from './components/assistant/thinking/Gallery';
+import { Session } from './components/assistant/session/Session';
 
 /**
  * The prototype is presented inside a phone-sized frame so it reads correctly
@@ -20,6 +21,25 @@ export default function App() {
 
   // A review surface for comparing thinking animations, not part of the journey.
   if (hash === '#thinking') return <ThinkingGallery />;
+
+  // The guided session on its own, from the greeting. The journey normally
+  // reaches it through the storefront and signing in; this skips straight to
+  // it so the questions, the pieces and checkout can be reviewed on their own.
+  if (hash === '#session') {
+    return (
+      <div className="grid min-h-dvh place-items-center bg-[#e9e6e1] p-6">
+        <div
+          className="relative overflow-hidden rounded-[44px] bg-[var(--paper)] shadow-[0_30px_90px_rgba(0,0,0,0.22)] ring-1 ring-black/10"
+          style={{
+            width: 'var(--viewport-width)',
+            height: 'min(var(--viewport-height), calc(100dvh - 48px))',
+          }}
+        >
+          <Session onCollapse={() => undefined} onClose={() => undefined} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="grid min-h-dvh place-items-center bg-[#e9e6e1] p-6">

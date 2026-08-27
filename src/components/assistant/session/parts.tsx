@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { moves, pace, prefersReducedMotion, stagger, typingSpeed } from '../../../motion/motion';
+import { duration, moves, pace, prefersReducedMotion, stagger, typingSpeed } from '../../../motion/motion';
 import type { Tile } from '../../../content/journey';
 import { CheckIcon, HeartIcon, StackIcon } from '../icons';
 
@@ -126,6 +126,48 @@ export function Line({
   );
 }
 
+/**
+ * Several paragraphs, said one after another.
+ *
+ * The assistant does not deliver a whole answer at once. Each paragraph types
+ * itself out, and the next one does not begin until the last has finished —
+ * which is the difference between being answered and being handed a page.
+ */
+export function Lines({
+  children,
+  start = true,
+  onDone,
+}: {
+  children: readonly string[];
+  start?: boolean;
+  onDone?: () => void;
+}) {
+  const [said, setSaid] = useState(0);
+
+  return (
+    <div className="flex w-full flex-col gap-3">
+      {children.map((text, index) => {
+        if (index > said) return null;
+        return (
+          <Line
+            key={index}
+            start={start}
+            onDone={() => {
+              if (index < children.length - 1) {
+                window.setTimeout(() => setSaid(index + 1), pace.beforeSpeech);
+              } else {
+                onDone?.();
+              }
+            }}
+          >
+            {text}
+          </Line>
+        );
+      })}
+    </div>
+  );
+}
+
 /** The small caps heading that opens a section. */
 export function Label({ children }: { children: string }) {
   return (
@@ -191,14 +233,31 @@ export function useSectionReveal() {
  * point the section was two lines tall and there was nothing below it to
  * scroll against. Now that it has filled out, the scroll can actually land.
  */
-export function Body({ show, children }: { show: boolean; children: React.ReactNode }) {
+export function Body({
+  show,
+  children,
+  onSettled,
+}: {
+  show: boolean;
+  children: React.ReactNode;
+  /** Called once the body has arrived and the section has nothing left to say. */
+  onSettled?: () => void;
+}) {
   const held = useRef<HTMLDivElement>(null);
+  const settle = useRef(onSettled);
+  settle.current = onSettled;
 
   useEffect(() => {
     if (!show) return;
     const timer = window.setTimeout(() => {
       held.current?.closest('section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 120);
+    return () => window.clearTimeout(timer);
+  }, [show]);
+
+  useEffect(() => {
+    if (!show) return;
+    const timer = window.setTimeout(() => settle.current?.(), duration.considered * 1000);
     return () => window.clearTimeout(timer);
   }, [show]);
 

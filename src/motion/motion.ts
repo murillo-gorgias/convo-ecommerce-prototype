@@ -134,6 +134,26 @@ export const pace = {
   betweenSections: 950,
 
   /**
+   * After a piece is tapped in the grid, before it opens out. The tap needs to
+   * be seen landing on the photograph before the photograph starts moving.
+   */
+  beforeOpening: 380,
+
+  /**
+   * After an answer has been fully given, before the piece it was about folds
+   * back to a single line. The answer is the subject now, but only once it has
+   * been read.
+   */
+  beforeCollapsing: 900,
+
+  /**
+   * How long the bag takes to accept something. Not a real network call — a
+   * held beat, because an instant confirmation reads as nothing having
+   * happened.
+   */
+  adding: 1100,
+
+  /**
    * After the account has visibly opened, before the session takes the screen.
    * This one is the longest wait in the prototype on purpose: it is the only
    * moment the shopper is asked to wait for something real, and the expansion
@@ -398,11 +418,113 @@ export const moves = {
       transition: spring.control,
     },
 
-    /** A recommended piece arriving in the carousel. */
+    /** A recommended piece arriving in the grid. */
     piece: {
       initial: { opacity: 0, y: 24, scale: 0.97 },
       animate: { opacity: 1, y: 0, scale: 1 },
       transition: { duration: duration.considered, ease: easing.refined },
+    },
+
+    /* ----------------------------------------------------------------
+     * ONE PIECE, OPENED
+     *
+     * Tapping a piece in the grid does not open a page. The photograph
+     * itself grows from its square in the grid to the full width of the
+     * conversation, matched by `layoutId` — the same trick the fold uses.
+     * Everything else about the piece fades in around it once it has
+     * arrived, so the photograph is never racing its own caption.
+     * ---------------------------------------------------------------- */
+
+    /** The container of an opened piece, growing and shrinking. */
+    open: spring.surface,
+
+    /** Name, price, rating and controls fading in around the photograph. */
+    openDetail: {
+      initial: { opacity: 0, y: 10 },
+      animate: { opacity: 1, y: 0 },
+      exit: { opacity: 0, y: 6 },
+      transition: { duration: duration.base, ease: easing.refined, delay: 0.14 },
+    },
+
+    /** The piece folded back to a single line, with a way to reopen it. */
+    collapsedPiece: {
+      initial: { opacity: 0, y: -6 },
+      animate: { opacity: 1, y: 0 },
+      transition: { duration: duration.base, ease: easing.refined },
+    },
+
+    /* ----------------------------------------------------------------
+     * WHAT THE ASSISTANT SHOWS INSIDE AN ANSWER
+     * ---------------------------------------------------------------- */
+
+    /** A quoted review, arriving under the answer that summarised it. */
+    review: {
+      initial: { opacity: 0, y: 14 },
+      animate: { opacity: 1, y: 0 },
+      transition: { duration: duration.considered, ease: easing.refined },
+    },
+
+    /** A single piece offered inside an answer — the care kit, the pairing. */
+    offer: {
+      initial: { opacity: 0, y: 12 },
+      animate: { opacity: 1, y: 0 },
+      transition: { duration: duration.considered, ease: easing.refined, delay: 0.1 },
+    },
+
+    /* ----------------------------------------------------------------
+     * THE BAG AND WHAT FOLLOWS IT
+     * ---------------------------------------------------------------- */
+
+    /** The bag being worked out: a ring that turns while nothing is known yet. */
+    working: {
+      animate: { rotate: 360 },
+      transition: { duration: 0.9, ease: 'linear' as const, repeat: Infinity },
+    },
+
+    /** A white card — the bag, the totals, the order. */
+    card: {
+      initial: { opacity: 0, y: 16, scale: 0.99 },
+      animate: { opacity: 1, y: 0, scale: 1 },
+      transition: { duration: duration.considered, ease: easing.refined },
+    },
+
+    /** One line inside a card, arriving after it. Delay applied where used. */
+    cardRow: {
+      initial: { opacity: 0, y: 6 },
+      animate: { opacity: 1, y: 0 },
+      transition: { duration: duration.base, ease: easing.refined },
+    },
+
+    /** The count on the bag button, landing as something is added. */
+    badge: {
+      initial: { scale: 0, opacity: 0 },
+      animate: { scale: 1, opacity: 1 },
+      exit: { scale: 0, opacity: 0 },
+      transition: spring.control,
+    },
+
+    /* ----------------------------------------------------------------
+     * SWIPE TO PAY
+     *
+     * The one irreversible act in the session, and the only control that
+     * asks for a deliberate gesture rather than a tap. The knob follows the
+     * finger; released short of the end it returns, released past it the
+     * track fills and the label goes.
+     * ---------------------------------------------------------------- */
+
+    /** The knob returning when the swipe was not carried through. */
+    swipeReturn: spring.surface,
+
+    /** The label under the knob, dimming as the knob travels over it. */
+    swipeLabel: {
+      transition: { duration: duration.instant, ease: easing.even },
+    },
+
+    /** The track filling once the swipe is complete. */
+    swipeFill: {
+      initial: { scaleX: 0 },
+      animate: { scaleX: 1 },
+      transition: { duration: duration.base, ease: easing.refined },
     },
 
     /** Light travelling across text while the account is being opened. */
