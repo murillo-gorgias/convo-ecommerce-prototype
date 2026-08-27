@@ -2,13 +2,26 @@ import { useEffect, useRef, useState } from 'react';
 import { Storefront } from './components/store/Storefront';
 import { Assistant } from './components/assistant/Assistant';
 import { ThinkingGallery } from './components/assistant/thinking/Gallery';
-import { Session } from './components/assistant/session/Session';
+import { Session, type Checkpoint } from './components/assistant/session/Session';
 
 /**
  * The prototype is presented inside a phone-sized frame so it reads correctly
  * on a laptop or a projector. The frame is presentation dressing only — the
  * storefront and the assistant inside it are the prototype.
  */
+/**
+ * Where each review route drops you into the session. `#session` is the whole
+ * thing from the greeting; the rest start with everything before them already
+ * answered.
+ */
+const CHECKPOINTS: Record<string, Checkpoint> = {
+  '#session': 'greeting',
+  '#vibe': 'vibe',
+  '#product': 'product',
+  '#cart': 'cart',
+  '#checkout': 'checkout',
+};
+
 export default function App() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [hash, setHash] = useState(window.location.hash);
@@ -22,10 +35,12 @@ export default function App() {
   // A review surface for comparing thinking animations, not part of the journey.
   if (hash === '#thinking') return <ThinkingGallery />;
 
-  // The guided session on its own, from the greeting. The journey normally
-  // reaches it through the storefront and signing in; this skips straight to
-  // it so the questions, the pieces and checkout can be reviewed on their own.
-  if (hash === '#session') {
+  // Checkpoints into the guided session, for review. The journey normally
+  // reaches the session through the storefront and signing in; these skip
+  // straight to one part of it, with everything before that point already
+  // answered, so a single section can be watched without replaying the rest.
+  const checkpoint = CHECKPOINTS[hash];
+  if (checkpoint) {
     return (
       <div className="grid min-h-dvh place-items-center bg-[#e9e6e1] p-6">
         <div
@@ -35,7 +50,12 @@ export default function App() {
             height: 'min(var(--viewport-height), calc(100dvh - 48px))',
           }}
         >
-          <Session onCollapse={() => undefined} onClose={() => undefined} />
+          <Session
+            key={hash}
+            start={checkpoint}
+            onCollapse={() => undefined}
+            onClose={() => undefined}
+          />
         </div>
       </div>
     );

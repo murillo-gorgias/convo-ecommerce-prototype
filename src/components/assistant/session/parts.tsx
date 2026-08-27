@@ -144,26 +144,33 @@ export function Lines({
 }) {
   const [said, setSaid] = useState(0);
 
+  /**
+   * EVERY paragraph is rendered from the first frame, even the ones that have
+   * not been said yet. Each one holds its own final height through the
+   * invisible copy inside `Line`, so the block reserves all of its space up
+   * front and nothing above it moves while the assistant types.
+   *
+   * Adding paragraphs to the DOM as they were spoken is what made the
+   * conversation twitch: every new one grew the thread, and everything already
+   * on screen slid to make room, several times per answer.
+   */
   return (
     <div className="flex w-full flex-col gap-3">
-      {children.map((text, index) => {
-        if (index > said) return null;
-        return (
-          <Line
-            key={index}
-            start={start}
-            onDone={() => {
-              if (index < children.length - 1) {
-                window.setTimeout(() => setSaid(index + 1), pace.beforeSpeech);
-              } else {
-                onDone?.();
-              }
-            }}
-          >
-            {text}
-          </Line>
-        );
-      })}
+      {children.map((text, index) => (
+        <Line
+          key={index}
+          start={start && index <= said}
+          onDone={() => {
+            if (index < children.length - 1) {
+              window.setTimeout(() => setSaid(index + 1), pace.beforeSpeech);
+            } else {
+              onDone?.();
+            }
+          }}
+        >
+          {text}
+        </Line>
+      ))}
     </div>
   );
 }

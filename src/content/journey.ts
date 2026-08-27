@@ -37,6 +37,13 @@ export type Chip = {
   label: string;
   /** The one that moves the session on. Drawn dark. */
   primary?: boolean;
+  /**
+   * Acts by SPEAKING rather than by pressing. Tapping it fills the input with
+   * the spoken command as a live transcript, and only then does the thing.
+   * The design has both of these as voice moments, and a chip that silently
+   * performed them would be a button wearing a conversation's clothes.
+   */
+  voice?: boolean;
 };
 
 /** A piece the assistant ends up recommending. */
@@ -52,8 +59,12 @@ export type Recommendation = {
   swatch: string;
   /** The square shown in the grid. */
   image: string;
-  /** The larger shot shown once the piece is opened. */
-  open: string;
+  /**
+   * The photographs shown once the piece is opened, swiped through in order.
+   * The first is the one the grid square grows into, so it must be the same
+   * shot at a larger size.
+   */
+  gallery: string[];
 };
 
 /* ==========================================================================
@@ -176,8 +187,12 @@ export const perfectFit = {
       material: '18k Gold Vermeil',
       swatch: '#E0A45E',
       image: asset('/brand/products/worn-floating-sapphire.png'),
-      /** The larger worn shot, used once the piece is opened. */
-      open: asset('/brand/products/open-floating-sapphire.png'),
+      gallery: [
+        asset('/brand/products/open-floating-sapphire.png'),
+        asset('/brand/products/rec-floating-sapphire.png'),
+        asset('/brand/products/floating-sapphire.jpg'),
+        asset('/brand/sizing/18-collarbone.png'),
+      ],
     },
     {
       id: 'sapphire-cluster',
@@ -188,7 +203,11 @@ export const perfectFit = {
       material: '18k Gold Vermeil',
       swatch: '#E0A45E',
       image: asset('/brand/products/worn-sapphire-cluster.png'),
-      open: asset('/brand/products/worn-sapphire-cluster.png'),
+      gallery: [
+        asset('/brand/products/worn-sapphire-cluster.png'),
+        asset('/brand/products/sapphire-cluster.jpg'),
+        asset('/brand/sizing/16-collar.png'),
+      ],
     },
     {
       id: 'jojo-loop',
@@ -199,7 +218,11 @@ export const perfectFit = {
       material: 'Silver + Vermeil',
       swatch: '#C8C8C8',
       image: asset('/brand/products/worn-jojo-loop.png'),
-      open: asset('/brand/products/worn-jojo-loop.png'),
+      gallery: [
+        asset('/brand/products/worn-jojo-loop.png'),
+        asset('/brand/products/jojo-loop.jpg'),
+        asset('/brand/sizing/20-below.png'),
+      ],
     },
     {
       id: 'herringbone',
@@ -210,7 +233,11 @@ export const perfectFit = {
       material: '18k Gold Vermeil',
       swatch: '#E0A45E',
       image: asset('/brand/products/worn-herringbone.png'),
-      open: asset('/brand/products/worn-herringbone.png'),
+      gallery: [
+        asset('/brand/products/worn-herringbone.png'),
+        asset('/brand/products/herringbone.jpg'),
+        asset('/brand/vibe/gold-letter.png'),
+      ],
     },
   ] satisfies Recommendation[],
 
@@ -319,7 +346,7 @@ export const answers: Answer[] = [
     closing: 'Want me to add a care kit so it stays that way, or show you this one in solid gold?',
     offer: careKit,
     chips: [
-      { id: 'add-both', label: 'Add necklace to bag', primary: true },
+      { id: 'add-both', label: 'Add necklace to bag', primary: true, voice: true },
       { id: 'solid-gold', label: 'Show solid gold' },
       { id: 'more-reviews', label: 'What other reviewers say?' },
     ],
@@ -346,7 +373,7 @@ export const offerCopy = {
  * ========================================================================== */
 
 const bagChips: Chip[] = [
-  { id: 'checkout', label: 'Check out', primary: true },
+  { id: 'checkout', label: 'Check out', primary: true, voice: true },
   { id: 'browse', label: 'Keep browsing' },
 ];
 

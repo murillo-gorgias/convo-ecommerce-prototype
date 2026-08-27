@@ -1,3 +1,4 @@
+import { useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { perfectFit, productDetail, type Recommendation } from '../../../content/journey';
 import { moves, stagger } from '../../../motion/motion';
@@ -19,11 +20,13 @@ import { Body, Label, Line, Section, useSectionReveal } from './parts';
  * tell which one you were doing.
  *
  * So the pieces are shown flat and quiet — photograph, name, price, and one
- * line saying why this one. Tapping opens a piece to the full width of the
- * conversation, in place. Nothing covers anything.
+ * line saying why this one. They arrive one at a time. Tapping opens a piece to
+ * the full width of the conversation, in place, and only THEN does a sideways
+ * swipe mean something: it moves through that piece's photographs, and it is
+ * the only swipe on screen.
  *
  * WHAT AN OPENED PIECE SHOWS
- * The photograph, the name, the price, the rating, the material and the bag.
+ * The photographs, the name, the price, the rating, the material and the bag.
  * That is the whole list. Everything a product page would stack up below the
  * fold — what it is made of, whether it tarnishes, how to care for it, what
  * people said — is asked for in the conversation instead. Scrolling to find
@@ -63,22 +66,21 @@ export function PerfectFit({
       </Line>
 
       <Body show={ready} onSettled={onSettled}>
-        <AnimatePresence mode="wait" initial={false}>
+        {/* No `mode="wait"`. The photograph has to be on screen in both the
+            old shape and the new one for it to travel between them — waiting
+            for one to leave before the other arrives is what made the piece
+            snap shut instead of folding.
+
+            And no `initial={false}`. That suppresses the entrance animation of
+            whatever mounts first, which here is the grid — so all four pieces
+            appeared at once instead of arriving in turn. */}
+        <AnimatePresence>
           {piece && folded ? (
             <CollapsedPiece key="folded" piece={piece} onReopen={onReopen} />
           ) : piece ? (
-            <OpenPiece
-              key="open"
-              piece={piece}
-              inBag={inBag}
-              onAddToBag={onAddToBag}
-            />
+            <OpenPiece key="open" piece={piece} inBag={inBag} onAddToBag={onAddToBag} />
           ) : (
-            <motion.div
-              key="grid"
-              layout
-              className="grid w-full grid-cols-2 gap-x-3 gap-y-5"
-            >
+            <motion.div key="grid" className="grid w-full grid-cols-2 gap-x-3 gap-y-5">
               {perfectFit.pieces.map((candidate, index) => (
                 <GridPiece
                   key={candidate.id}
@@ -119,20 +121,12 @@ function GridPiece({
       onClick={onOpen}
       initial={moves.session.piece.initial}
       animate={moves.session.piece.animate}
-      transition={{ ...moves.session.piece.transition, delay: index * stagger.base }}
+      transition={{ ...moves.session.piece.transition, delay: index * stagger.deliberate }}
       whileTap={moves.session.tilePress}
       className="flex w-full flex-col items-stretch text-left"
       aria-label={`${piece.name}, $${piece.price}`}
     >
-      {/* The photograph carries its own identity across the open, so tapping
-          grows this exact image rather than swapping it for another. */}
-      <motion.img
-        layoutId={`piece-${piece.id}`}
-        transition={moves.session.open}
-        src={piece.image}
-        alt=""
-        className="h-[236px] w-full rounded-[12px] object-cover"
-      />
+      <Photograph piece={piece} className="h-[236px] w-full rounded-[12px]" />
 
       <div className="mt-2 flex items-baseline gap-2">
         <span className="min-w-0 flex-1 truncate font-[var(--font-ui)] text-[14px] leading-[21px] text-black">
@@ -150,6 +144,37 @@ function GridPiece({
   );
 }
 
+/**
+ * The photograph that travels between the grid, the opened piece and the
+ * folded line — the same element throughout, matched by `layoutId`.
+ *
+ * The image is scaled very slightly inside a clipping frame. The exported
+ * photographs carry their own rounded corners with a hairline of transparency
+ * around them, which showed as a pale edge against the warm sheet. Cropping a
+ * couple of percent removes it without anything else changing.
+ */
+function Photograph({
+  piece,
+  className,
+}: {
+  piece: Recommendation;
+  className: string;
+}) {
+  return (
+    <motion.span
+      layoutId={`piece-${piece.id}`}
+      transition={moves.session.open}
+      className={`relative block overflow-hidden bg-[var(--paper-warm)] ${className}`}
+    >
+      <img
+        src={piece.image}
+        alt=""
+        className="h-full w-full scale-[1.03] object-cover"
+      />
+    </motion.span>
+  );
+}
+
 /* ==========================================================================
  * ONE PIECE, OPENED
  * ========================================================================== */
@@ -164,19 +189,12 @@ function OpenPiece({
   onAddToBag: () => void;
 }) {
   return (
-    <motion.article layout transition={moves.session.open} className="-mx-4 w-[calc(100%+32px)]">
-      {/* The photograph, run to the edges of the sheet. Once a piece is the
-          subject it stops being a card and becomes the view. */}
-      <div className="relative w-full overflow-hidden">
-        <motion.img
-          layoutId={`piece-${piece.id}`}
-          transition={moves.session.open}
-          src={piece.open}
-          alt={piece.name}
-          className="h-[452px] w-full object-cover"
-        />
-        <Pagination />
-      </div>
+    <motion.article
+      layout
+      transition={moves.session.open}
+      className="-mx-4 w-[calc(100%+32px)]"
+    >
+      <Gallery piece={piece} />
 
       <motion.div {...moves.session.openDetail} className="px-4">
         <div className="mt-4 flex items-baseline justify-between gap-3">
@@ -254,28 +272,87 @@ function OpenPiece({
   );
 }
 
-/**
- * The dots under the photograph. They shrink towards the edge rather than
- * running to a hard stop, which reads as "there is more" without a number.
- */
-function Pagination() {
-  const dots = [
-    { size: 6, opacity: 1 },
-    { size: 6, opacity: 0.4 },
-    { size: 6, opacity: 0.4 },
-    { size: 4, opacity: 0.3 },
-    { size: 2, opacity: 0.25 },
-  ];
+/* ==========================================================================
+ * THE GALLERY
+ *
+ * The photographs of one piece, swiped through. This is the only place in the
+ * session where a sideways swipe means anything, which is the whole reason
+ * the recommendation stopped being a carousel.
+ *
+ * It is a real scroller with snap points rather than a drag-and-count, so it
+ * carries the momentum and rubber-banding the platform already does well, and
+ * the dots simply report where the scroll ended up.
+ * ========================================================================== */
+
+function Gallery({ piece }: { piece: Recommendation }) {
+  const rail = useRef<HTMLDivElement>(null);
+  const [frame, setFrame] = useState(0);
+
+  const onScroll = () => {
+    const node = rail.current;
+    if (!node) return;
+    setFrame(Math.round(node.scrollLeft / node.clientWidth));
+  };
 
   return (
-    <div className="absolute bottom-[10px] left-1/2 flex -translate-x-1/2 items-center gap-1">
-      {dots.map((dot, i) => (
-        <span
-          key={i}
-          className="rounded-full bg-[var(--ink-soft)]"
-          style={{ width: dot.size, height: dot.size, opacity: dot.opacity }}
-        />
-      ))}
+    <div className="relative">
+      <div
+        ref={rail}
+        onScroll={onScroll}
+        data-gallery
+        className="flex w-full snap-x snap-mandatory overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
+        {piece.gallery.map((shot, index) =>
+          index === 0 ? (
+            /* The first frame is the one that travelled here from the grid, so
+               it keeps the shared identity. The rest are ordinary images. */
+            <motion.span
+              key={shot}
+              layoutId={`piece-${piece.id}`}
+              transition={moves.session.open}
+              className="relative block h-[452px] w-full min-w-full shrink-0 snap-center overflow-hidden bg-[var(--paper-warm)]"
+            >
+              <img src={shot} alt={piece.name} className="h-full w-full scale-[1.03] object-cover" />
+            </motion.span>
+          ) : (
+            <span
+              key={shot}
+              className="relative block h-[452px] w-full min-w-full shrink-0 snap-center overflow-hidden bg-[var(--paper-warm)]"
+            >
+              <img src={shot} alt="" className="h-full w-full scale-[1.03] object-cover" />
+            </span>
+          ),
+        )}
+      </div>
+
+      <Pagination count={piece.gallery.length} at={frame} />
+    </div>
+  );
+}
+
+/**
+ * The dots under the photographs. The one you are on is solid; the rest fade
+ * and shrink with distance, so the row reads as "there is more this way"
+ * rather than as a count to keep track of.
+ */
+function Pagination({ count, at }: { count: number; at: number }) {
+  return (
+    <div className="pointer-events-none absolute bottom-[10px] left-1/2 flex -translate-x-1/2 items-center gap-1">
+      {Array.from({ length: count }, (_, index) => {
+        const distance = Math.abs(index - at);
+        return (
+          <motion.span
+            key={index}
+            animate={{
+              width: distance === 0 ? 6 : Math.max(2, 6 - distance),
+              height: distance === 0 ? 6 : Math.max(2, 6 - distance),
+              opacity: distance === 0 ? 1 : Math.max(0.25, 0.55 - distance * 0.12),
+            }}
+            transition={moves.session.galleryDot.transition}
+            className="rounded-full bg-[var(--ink-soft)]"
+          />
+        );
+      })}
     </div>
   );
 }
@@ -284,9 +361,10 @@ function Pagination() {
  * THE PIECE, FOLDED BACK
  *
  * Once an answer has been given the piece stops being the subject, so it
- * folds to a single line — the same move every answered section makes. It
- * keeps a way back in, because the conversation above is meant to stay live
- * rather than becoming a transcript.
+ * folds to a single line — the same move every answered section makes. The
+ * photograph is not swapped for a thumbnail; it shrinks into one, because it
+ * is the same element. It keeps a way back in, because the conversation above
+ * is meant to stay live rather than becoming a transcript.
  * ========================================================================== */
 
 export function CollapsedPiece({
@@ -297,12 +375,11 @@ export function CollapsedPiece({
   onReopen: () => void;
 }) {
   return (
-    <motion.div
-      {...moves.session.collapsedPiece}
-      layout
-      className="flex w-full items-stretch"
-    >
-      <div className="flex flex-1 flex-col justify-center gap-4 rounded-l-[24px] border-y border-l border-[var(--confirmed-border)] bg-[var(--confirmed-bg)] p-5">
+    <motion.div layout transition={moves.session.open} className="flex w-full items-stretch">
+      <motion.div
+        {...moves.session.collapsedPiece}
+        className="flex flex-1 flex-col justify-center gap-4 rounded-l-[24px] border-y border-l border-[var(--confirmed-border)] bg-[var(--confirmed-bg)] p-5"
+      >
         <span className="font-[var(--font-ui)] text-[14px] font-medium leading-[20px] text-[var(--ink-soft)]">
           {piece.name}
         </span>
@@ -313,13 +390,19 @@ export function CollapsedPiece({
         >
           {productDetail.reopen}
         </motion.button>
-      </div>
+      </motion.div>
 
-      <img
-        src={piece.open}
-        alt=""
-        className="w-[112px] shrink-0 rounded-r-[12px] object-cover"
-      />
+      <motion.span
+        layoutId={`piece-${piece.id}`}
+        transition={moves.session.open}
+        className="relative block w-[112px] shrink-0 overflow-hidden rounded-r-[12px] bg-[var(--paper-warm)]"
+      >
+        <img
+          src={piece.gallery[0]}
+          alt=""
+          className="h-full w-full scale-[1.03] object-cover"
+        />
+      </motion.span>
     </motion.div>
   );
 }

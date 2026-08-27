@@ -92,51 +92,101 @@ const CLEAR_TIME = 280;
  *  tap is seen before the section closes over it. */
 const ACKNOWLEDGE_TIME = 460;
 
+/**
+ * CHECKPOINTS
+ *
+ * The session is long, and most work on it is work on one part of it. Starting
+ * at a checkpoint fills in every answer before that point as though it had
+ * been given, so the thread reads correctly from the top and the part being
+ * worked on behaves exactly as it does in a full run.
+ *
+ * They are for review only. A real shopper always starts at `greeting`.
+ */
+export type Checkpoint = 'greeting' | 'vibe' | 'product' | 'cart' | 'checkout';
+
+const CHECKPOINT_STAGE: Record<Checkpoint, Stage> = {
+  greeting: 'greeting',
+  vibe: 'vibe',
+  product: 'pieces',
+  cart: 'bag',
+  checkout: 'checkout',
+};
+
+/** What has already been answered by the time a checkpoint begins. */
+const answeredBefore = (checkpoint: Checkpoint) => {
+  const questionsDone = checkpoint === 'product' || checkpoint === 'cart' || checkpoint === 'checkout';
+  const bagged = checkpoint === 'cart' || checkpoint === 'checkout';
+
+  return {
+    questionsDone,
+    bagged,
+    /* At the bag and beyond, a piece has been opened and asked about, so it
+       sits folded with the conversation about it above the bag. */
+    asked: bagged ? answers.map((answer) => answer.id) : [],
+  };
+};
+
 export function Session({
   onCollapse,
   onClose,
+  start = 'greeting',
 }: {
   onCollapse: () => void;
   onClose: () => void;
+  /** Where to begin. Anything but `greeting` is a review shortcut. */
+  start?: Checkpoint;
 }) {
+  const from = answeredBefore(start);
+
   /* --- How far the conversation has got ---------------------------------- */
-  const [stage, setStage] = useState<Stage>('greeting');
-  const [greeted, setGreeted] = useState(false);
-  const [speaking, setSpeaking] = useState(false);
+  const [stage, setStage] = useState<Stage>(CHECKPOINT_STAGE[start]);
+  const [greeted, setGreeted] = useState(start !== 'greeting');
+  const [speaking, setSpeaking] = useState(start !== 'greeting');
 
   /* --- What the shopper has answered so far ------------------------------ */
-  const [vibePicks, setVibePicks] = useState<string[]>([]);
-  const [vibePhase, setVibePhase] = useState<Phase>('open');
+  const [vibePicks, setVibePicks] = useState<string[]>(
+    from.questionsDone ? [vibeCheck.tiles[0].id, vibeCheck.tiles[3].id] : [],
+  );
+  const [vibePhase, setVibePhase] = useState<Phase>(from.questionsDone ? 'closed' : 'open');
 
-  const [stylePick, setStylePick] = useState<string>();
-  const [stylePhase, setStylePhase] = useState<Phase>('open');
+  const [stylePick, setStylePick] = useState<string | undefined>(
+    from.questionsDone ? styleCheck.tiles[0].id : undefined,
+  );
+  const [stylePhase, setStylePhase] = useState<Phase>(from.questionsDone ? 'closed' : 'open');
 
-  const [sizePick, setSizePick] = useState<string>();
-  const [sizePhase, setSizePhase] = useState<Phase>('open');
+  const [sizePick, setSizePick] = useState<string | undefined>(
+    from.questionsDone ? sizing.tiles[1].id : undefined,
+  );
+  const [sizePhase, setSizePhase] = useState<Phase>(from.questionsDone ? 'closed' : 'open');
 
   /* --- The second half: one piece, and the conversation about it ---------- */
 
   /** Which piece is open. Undefined means the grid is showing. */
-  const [opened, setOpened] = useState<string>();
+  const [opened, setOpened] = useState<string | undefined>(
+    from.bagged ? perfectFit.pieces[0].id : undefined,
+  );
 
   /** True once the grid has finished arriving, so it can offer suggestions. */
   const [gridReady, setGridReady] = useState(false);
 
   /** Which questions have been asked, in the order they were asked. */
-  const [asked, setAsked] = useState<string[]>([]);
+  const [asked, setAsked] = useState<string[]>(from.asked);
 
   /** True once the last answer has finished, so the next chips can appear. */
   const [answered, setAnswered] = useState(true);
 
   /** The piece folds back to a line once it stops being the subject. */
-  const [pieceFolded, setPieceFolded] = useState(false);
+  const [pieceFolded, setPieceFolded] = useState(from.bagged);
 
   /* --- The bag ------------------------------------------------------------ */
-  const [bagCount, setBagCount] = useState(0);
+  const [bagCount, setBagCount] = useState(from.bagged ? bag.items.length : 0);
   const [adding, setAdding] = useState(false);
   const [bagSettled, setBagSettled] = useState(false);
   const [checkoutSettled, setCheckoutSettled] = useState(false);
   const [paid, setPaid] = useState(false);
+
+  /** What is currently being said out loud into the input, if anything. */
+  const [saying, setSaying] = useState<string>();
 
   /* --- Where each section sits, so a new one can be scrolled to ----------- */
   const thread = useRef<HTMLDivElement>(null);
@@ -153,10 +203,12 @@ export function Session({
 
   /* The shopper's words land, and the assistant takes a moment before it
      replies — the same moment a person would take. */
-  useAfter(pace.afterSaid, true, () => setSpeaking(true));
+  useAfter(pace.afterSaid, start === 'greeting', () => setSpeaking(true));
 
   /* The greeting finishes, and the first question is still not rushed. */
-  useAfter(pace.betweenSections, greeted, () => setStage('vibe'));
+  useAfter(pace.betweenSections, greeted && start === 'greeting', () =>
+    setStage((at) => (reached(at, 'vibe') ? at : 'vibe')),
+  );
 
   /* --- One section settles, the next takes its turn ----------------------- */
   const advance = (to: Stage) => () =>
@@ -223,6 +275,23 @@ export function Session({
     window.setTimeout(() => setPieceFolded(true), pace.beforeCollapsing);
   };
 
+  /**
+   * Says something out loud, then does it.
+   *
+   * The two moments that move the session on from here — putting both pieces
+   * in the bag, and checking out — are spoken in the design, not pressed. The
+   * command appears in the input as a live transcript first, and only then
+   * takes effect, so the shopper sees what was heard before anything happens.
+   */
+  const speak = (words: string, then: () => void) => {
+    if (saying) return;
+    setSaying(words);
+    window.setTimeout(() => {
+      setSaying(undefined);
+      then();
+    }, pace.speaking);
+  };
+
   /* --- Into the bag -------------------------------------------------------- */
 
   /**
@@ -283,7 +352,9 @@ export function Session({
           id: chip.id,
           label: chip.label,
           primary: chip.primary,
-          onSelect: chip.id === 'checkout' ? goToCheckout : focusAsk,
+          onSelect: chip.voice
+            ? () => speak(checkout.command, goToCheckout)
+            : focusAsk,
         }),
       );
     }
@@ -306,7 +377,7 @@ export function Session({
           label: chip.label,
           primary: chip.primary,
           onSelect: () => {
-            if (chip.id === 'add-both') addToBag();
+            if (chip.voice) speak(bag.command, addToBag);
             else if (answers.some((a) => a.id === chip.id)) ask(chip.id);
             else focusAsk();
           },
@@ -324,7 +395,11 @@ export function Session({
         ref={thread}
         className="relative z-10 flex-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
-        <motion.div layout className="flex flex-col items-start gap-8 px-4 pb-[280px] pt-[104px]">
+        {/* No `layout` on the thread itself. Every section already animates
+            its own arrival, and a layout animation here re-measured the whole
+            column on every keystroke — which is what made everything above a
+            line being typed drift about. */}
+        <div className="flex flex-col items-start gap-8 px-4 pb-[300px] pt-[104px]">
           <Said>{opening.query}</Said>
           <Line start={speaking} onDone={() => setGreeted(true)}>
             {opening.greeting}
@@ -394,7 +469,8 @@ export function Session({
             );
           })}
 
-          {/* Putting both things in, said out loud and then worked on. */}
+          {/* What was said out loud, kept in the thread once it has been said.
+              While it is still being spoken it lives in the input instead. */}
           {(adding || bagCount > 0) && <Said>{bag.command}</Said>}
 
           {adding && (
@@ -419,13 +495,14 @@ export function Session({
           )}
 
           {reached(stage, 'confirmed') && <Confirmation innerRef={confirmRef} />}
-        </motion.div>
+        </div>
       </div>
 
       <Dock
         suggestions={suggestions}
         inputRef={askRef}
         bagCount={bagCount}
+        speaking={saying}
         pay={
           checkoutSettled && !paid ? (
             <SwipeToPay label={checkout.pay} onPaid={onPaid} />

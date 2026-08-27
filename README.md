@@ -67,9 +67,17 @@ one works the same way.
 | `src/motion/` | Every animation — see [MOTION.md](MOTION.md) |
 | `src/components/` | The components, which contain none of the above |
 
-Two review surfaces sit outside the journey: `/#thinking` compares the thinking animations,
-and `/#session` opens the guided session on its own, so the questions, the pieces and
-checkout can be watched without replaying the storefront each time.
+Review surfaces sit outside the journey. `/#thinking` compares the thinking animations. The
+rest are checkpoints into the session, each starting with everything before it already
+answered, so one part can be watched without replaying the whole thing:
+
+| Route | Starts at |
+|---|---|
+| `#session` | The greeting — the whole session |
+| `#vibe` | The first question |
+| `#product` | The four recommended pieces |
+| `#cart` | The bag, with a piece already asked about and added |
+| `#checkout` | The total and the swipe |
 
 Swapping in a different brand means changing `src/brand/` and `src/content/`. The experience
 itself does not change.

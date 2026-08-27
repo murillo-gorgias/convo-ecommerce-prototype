@@ -21,6 +21,7 @@ Changing one of these changes the feel of the whole prototype at once.
 | `quick` | 0.25 | Small state changes — a tap response, an icon swap |
 | `base` | 0.4 | **The standard.** Most things use this |
 | `considered` | 0.6 | Larger surfaces arriving — the console opening |
+| `unhurried` | 1.0 | **The conversation's own pace.** Anything arriving in the thread |
 | `cinematic` | 0.9 | First-impression moments only |
 
 ### `easing` — the character of the movement
@@ -55,6 +56,7 @@ Each has three numbers: **stiffness** (higher is faster), **damping** (higher is
 | `tight` | 0.04 | Barely sequential |
 | `base` | 0.08 | **The standard** — clearly sequential, not slow |
 | `slow` | 0.14 | Deliberate, for something you want read |
+| `deliberate` | 0.26 | One at a time. Each item lands before the next begins |
 
 ---
 
@@ -118,6 +120,7 @@ it is shown because the last one **went quiet**.
 | `betweenSections` | 950 | A section goes quiet, before the next one appears |
 | `beforeOpening` | 380 | A piece is tapped, before it opens out |
 | `beforeCollapsing` | 900 | An answer finishes, before the piece it was about folds away |
+| `speaking` | 1600 | A spoken command sits in the input, before it takes effect |
 | `adding` | 1100 | The bag appears to work, before it says what it holds |
 | `beforeExpanding` | 1500 | The account visibly opens, before the session takes the screen |
 
@@ -218,13 +221,31 @@ currently 280 milliseconds.
 | `badge` | The count landing on the bag button | |
 | `swipeReturn` | The pay knob returning when the swipe was not carried through | |
 | `swipeLabel` | The label dimming as the knob passes over it | |
-| `swipeFill` | The track filling once the swipe is complete | |
+| `swipeTrack` | The track turning from black to glass under the finger | Driven by how far the knob went, not a state flag |
+| `chipRow` | The suggestion row fading in and out | Height is carried by the dock's own layout |
+| `galleryFrame` | One photograph of an opened piece crossing to the next | |
+| `galleryDot` | A pagination dot taking or losing the mark | |
 
 **Two numbers outside this file**, both at the top of `Session.tsx`:
 
 - `CLEAR_TIME` — how long unchosen images take to clear before the fold. 280ms.
 - `ACKNOWLEDGE_TIME` — how long a one-answer section stays open after being tapped, so the
   tap is seen before the section closes over it. 460ms.
+
+### Four things that silently switch animations off
+
+These caught us once each and are worth knowing before debugging a missing animation.
+
+- **`initial={false}` on an `AnimatePresence`** suppresses the entrance of whatever mounts
+  first. It made all four grid pieces appear at once instead of arriving in turn.
+- **`mode="wait"` on an `AnimatePresence`** waits for the old child to leave before the new
+  one arrives, so a shared `layoutId` has nothing to travel between. It made the opened piece
+  snap shut rather than fold.
+- **`layout` on a button** interpolates its box and scales the text with it. It is what made
+  the suggestion labels squash and stretch. Chips do not use it.
+- **`layout` on the thread** re-measures the whole column on every DOM change, so everything
+  drifted while a line was being typed. The thread is a plain `div`; sections animate
+  themselves.
 
 **And one in `SwipeToPay.tsx`:** `COMMIT` (0.72) — how far along the track counts as
 carried through. Let go before that and the knob returns.

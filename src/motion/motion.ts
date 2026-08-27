@@ -34,6 +34,14 @@ export const duration = {
   base: 0.4,
   /** 0.6s — larger surfaces arriving: the console opening, a panel expanding. */
   considered: 0.6,
+  /**
+   * 1s — the conversation's own pace. Everything that arrives IN the thread —
+   * a section, a line, a tile, a piece — uses this. It is deliberately slower
+   * than `considered`: the thread is being read, not operated, and an
+   * entrance that lands quickly reads as a page painting itself.
+   */
+  unhurried: 1,
+
   /** 0.9s — full-screen or first-impression moments only. Use sparingly. */
   cinematic: 0.9,
 } as const;
@@ -102,6 +110,12 @@ export const stagger = {
   base: 0.08,
   /** 0.14s — deliberate. For a short list you want people to read. */
   slow: 0.14,
+  /**
+   * 0.26s — one at a time. Each item clearly lands before the next begins.
+   * For the recommendation grid, where four pieces arriving together reads as
+   * a search result and four arriving in turn reads as being shown things.
+   */
+  deliberate: 0.26,
 } as const;
 
 /* ==========================================================================
@@ -145,6 +159,13 @@ export const pace = {
    * been read.
    */
   beforeCollapsing: 900,
+
+  /**
+   * How long a spoken command sits in the input as a live transcript before it
+   * takes effect. The shopper has to see what was heard; acting on it the
+   * instant it appears reads as a button press with extra steps.
+   */
+  speaking: 1600,
 
   /**
    * How long the bag takes to accept something. Not a real network call — a
@@ -333,7 +354,7 @@ export const moves = {
     line: {
       initial: { opacity: 0, y: 10 },
       animate: { opacity: 1, y: 0 },
-      transition: { duration: duration.considered, ease: easing.refined },
+      transition: { duration: duration.unhurried, ease: easing.refined },
     },
 
     /** The caret blinking at the end of a line still being typed. */
@@ -347,28 +368,28 @@ export const moves = {
     body: {
       initial: { opacity: 0, y: 14 },
       animate: { opacity: 1, y: 0 },
-      transition: { duration: duration.considered, ease: easing.refined },
+      transition: { duration: duration.unhurried, ease: easing.refined },
     },
 
     /** The small caps label that opens a section. Letters settle inward. */
     label: {
       initial: { opacity: 0, letterSpacing: '3px' },
       animate: { opacity: 1, letterSpacing: 'var(--type-label-tracking)' },
-      transition: { duration: duration.considered, ease: easing.refined },
+      transition: { duration: duration.unhurried, ease: easing.refined },
     },
 
     /** A whole section arriving. */
     section: {
       initial: { opacity: 0, y: 18 },
       animate: { opacity: 1, y: 0 },
-      transition: { duration: duration.considered, ease: easing.refined },
+      transition: { duration: duration.unhurried, ease: easing.refined },
     },
 
     /** One image tile settling in. Delay is applied where they are rendered. */
     tile: {
       initial: { opacity: 0, y: 20, scale: 0.94 },
       animate: { opacity: 1, y: 0, scale: 1 },
-      transition: { duration: duration.considered, ease: easing.refined },
+      transition: { duration: duration.unhurried, ease: easing.refined },
     },
 
     /** The tile the shopper is pressing. */
@@ -410,6 +431,18 @@ export const moves = {
     /** A thumbnail travelling into the confirmed line. */
     thumbTravel: spring.surface,
 
+    /**
+     * The row the suggestions sit in. Fades only — its height is carried by
+     * the dock's own layout animation, because animating the height here and
+     * clipping to it cut wrapped labels off mid-letter.
+     */
+    chipRow: {
+      initial: { opacity: 0 },
+      animate: { opacity: 1 },
+      exit: { opacity: 0 },
+      transition: { duration: duration.base, ease: easing.even },
+    },
+
     /** The suggestion chips above the input, arriving and leaving. */
     chip: {
       initial: { opacity: 0, y: 8, scale: 0.94 },
@@ -418,11 +451,15 @@ export const moves = {
       transition: spring.control,
     },
 
-    /** A recommended piece arriving in the grid. */
+    /**
+     * A recommended piece arriving in the grid. Slower than a tile and spaced
+     * by `stagger.deliberate`, so the four pieces are shown one at a time
+     * rather than appearing as a set.
+     */
     piece: {
-      initial: { opacity: 0, y: 24, scale: 0.97 },
+      initial: { opacity: 0, y: 28, scale: 0.96 },
       animate: { opacity: 1, y: 0, scale: 1 },
-      transition: { duration: duration.considered, ease: easing.refined },
+      transition: { duration: duration.unhurried, ease: easing.refined },
     },
 
     /* ----------------------------------------------------------------
@@ -435,8 +472,13 @@ export const moves = {
      * arrived, so the photograph is never racing its own caption.
      * ---------------------------------------------------------------- */
 
-    /** The container of an opened piece, growing and shrinking. */
-    open: spring.surface,
+    /**
+     * The photograph growing from its square in the grid to full width, and
+     * later shrinking into the line that records it. Softer and heavier than
+     * `surface` on purpose: this is the largest thing that moves in the
+     * session, and at `surface` it arrives before the eye can follow it.
+     */
+    open: { type: 'spring' as const, stiffness: 150, damping: 28, mass: 1.15 },
 
     /** Name, price, rating and controls fading in around the photograph. */
     openDetail: {
@@ -446,12 +488,27 @@ export const moves = {
       transition: { duration: duration.base, ease: easing.refined, delay: 0.14 },
     },
 
-    /** The piece folded back to a single line, with a way to reopen it. */
+    /**
+     * What sits BESIDE the photograph in the folded line — the name and the
+     * way back in. The photograph itself is not animated here; it travels,
+     * matched by `layoutId` to the one that was filling the screen.
+     */
     collapsedPiece: {
-      initial: { opacity: 0, y: -6 },
-      animate: { opacity: 1, y: 0 },
-      transition: { duration: duration.base, ease: easing.refined },
+      initial: { opacity: 0 },
+      animate: { opacity: 1 },
+      exit: { opacity: 0 },
+      transition: { duration: duration.considered, ease: easing.even, delay: 0.18 },
     },
+
+    /** One frame of an opened piece's gallery, crossing to the next. */
+    galleryFrame: {
+      initial: { opacity: 0 },
+      animate: { opacity: 1 },
+      transition: { duration: duration.base, ease: easing.even },
+    },
+
+    /** A pagination dot taking or losing the mark. */
+    galleryDot: { transition: { duration: duration.quick, ease: easing.even } },
 
     /* ----------------------------------------------------------------
      * WHAT THE ASSISTANT SHOWS INSIDE AN ANSWER
@@ -461,14 +518,14 @@ export const moves = {
     review: {
       initial: { opacity: 0, y: 14 },
       animate: { opacity: 1, y: 0 },
-      transition: { duration: duration.considered, ease: easing.refined },
+      transition: { duration: duration.unhurried, ease: easing.refined },
     },
 
     /** A single piece offered inside an answer — the care kit, the pairing. */
     offer: {
       initial: { opacity: 0, y: 12 },
       animate: { opacity: 1, y: 0 },
-      transition: { duration: duration.considered, ease: easing.refined, delay: 0.1 },
+      transition: { duration: duration.unhurried, ease: easing.refined, delay: 0.1 },
     },
 
     /* ----------------------------------------------------------------
@@ -485,7 +542,7 @@ export const moves = {
     card: {
       initial: { opacity: 0, y: 16, scale: 0.99 },
       animate: { opacity: 1, y: 0, scale: 1 },
-      transition: { duration: duration.considered, ease: easing.refined },
+      transition: { duration: duration.unhurried, ease: easing.refined },
     },
 
     /** One line inside a card, arriving after it. Delay applied where used. */
@@ -520,12 +577,12 @@ export const moves = {
       transition: { duration: duration.instant, ease: easing.even },
     },
 
-    /** The track filling once the swipe is complete. */
-    swipeFill: {
-      initial: { scaleX: 0 },
-      animate: { scaleX: 1 },
-      transition: { duration: duration.base, ease: easing.refined },
-    },
+    /**
+     * The track lightening as the knob is dragged across it. It starts as a
+     * solid black button and turns to glass under the finger, so the control
+     * visibly gives way rather than filling up like a progress bar.
+     */
+    swipeTrack: { transition: { duration: duration.quick, ease: easing.even } },
 
     /** Light travelling across text while the account is being opened. */
     shimmer: {

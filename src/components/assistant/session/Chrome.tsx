@@ -3,7 +3,7 @@ import { brand } from '../../../content/store';
 import { assistantCopy } from '../../../content/assistant';
 import { dock } from '../../../content/journey';
 import { moves } from '../../../motion/motion';
-import { CartIcon, ChevronLeftIcon, CloseIcon, MicIcon } from '../icons';
+import { CartIcon, ChevronLeftIcon, CloseIcon, MicIcon, Waveform } from '../icons';
 
 /**
  * ============================================================================
@@ -99,13 +99,16 @@ export function Dock({
   inputRef,
   bagCount = 0,
   pay,
+  speaking,
 }: {
   suggestions: Suggestion[];
   inputRef?: React.Ref<HTMLInputElement>;
   /** How many things are in the bag. The button only exists once it is not empty. */
   bagCount?: number;
-  /** Replaces the input while paying is the only thing left to do. */
+  /** The pay control, shown ABOVE the input rather than in place of it. */
   pay?: React.ReactNode;
+  /** What the shopper is currently saying out loud, shown as a live transcript. */
+  speaking?: string;
 }) {
   return (
     <motion.div
@@ -113,55 +116,83 @@ export function Dock({
       transition={moves.session.fold}
       className="absolute inset-x-0 bottom-0 z-30 flex flex-col items-center gap-4 rounded-t-[16px] border-t-[0.5px] border-[var(--dock-border)] bg-[var(--dock-bg)] px-4 pb-7 pt-4 shadow-[0_-4px_6px_rgba(0,0,0,0.06)] backdrop-blur-[10px]"
     >
+      {/* THE SUGGESTIONS.
+          Two things here are deliberate and easy to undo by accident.
+
+          No `layout` on a chip. A layout animation interpolates the button's
+          box, and the text inside is scaled with it — which is what made the
+          labels squash and stretch as the set changed.
+
+          No `overflow-hidden` on the row, and no animated height. The row
+          wraps to two lines when the labels are long, and clipping to an
+          animating height cut the second line off mid-letter. The dock's own
+          `layout` already carries the height change smoothly. */}
       <AnimatePresence initial={false}>
         {suggestions.length > 0 && (
           <motion.div
             layout
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={moves.session.fold}
-            className="flex w-full flex-wrap items-center justify-end gap-1 overflow-hidden"
+            {...moves.session.chipRow}
+            className="flex w-full flex-wrap items-center justify-end gap-2"
           >
-            <AnimatePresence initial={false} mode="popLayout">
-              {suggestions.map((suggestion) => (
-                <motion.button
-                  key={suggestion.id}
-                  layout
-                  {...moves.session.chip}
-                  whileTap={moves.assistant.press}
-                  onClick={suggestion.onSelect}
-                  className={`shrink-0 rounded-[32px] border border-[var(--chip-border)] px-3 py-3 font-[var(--font-ui)] text-[12px] font-medium leading-[15px] ${
-                    suggestion.primary
-                      ? 'bg-[var(--control-dark)] text-white'
-                      : 'bg-[var(--chip)] text-black'
-                  }`}
-                >
-                  {suggestion.label}
-                </motion.button>
-              ))}
-            </AnimatePresence>
+            {suggestions.map((suggestion) => (
+              <motion.button
+                key={suggestion.id}
+                {...moves.session.chip}
+                whileTap={moves.assistant.press}
+                onClick={suggestion.onSelect}
+                className={`shrink-0 whitespace-nowrap rounded-[32px] border border-[var(--chip-border)] px-4 py-[11px] font-[var(--font-ui)] text-[12px] font-medium leading-[15px] ${
+                  suggestion.primary
+                    ? 'bg-[var(--control-dark)] text-white'
+                    : 'bg-[var(--chip)] text-black'
+                }`}
+              >
+                {suggestion.label}
+              </motion.button>
+            ))}
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Paying takes the whole strip. There is nothing to ask at that point,
-          and leaving the field there would invite a question the session is
-          about to stop being able to answer. */}
-      {pay ? (
-        <div className="w-full">{pay}</div>
-      ) : (
-        <motion.div layout transition={moves.session.fold} className="flex w-full items-center gap-2">
-          <div className="flex h-10 flex-1 items-center justify-between rounded-[40px] border border-[var(--field-border)] bg-[var(--field-bg)] px-4 shadow-[0_4px_4px_rgba(0,0,0,0.04)]">
-            <input
-              ref={inputRef}
-              placeholder={dock.placeholder}
-              className="h-full flex-1 bg-transparent font-[var(--font-ui)] text-[12px] text-black outline-none placeholder:text-black/60"
-            />
-            <motion.span whileTap={moves.assistant.press} className="text-[var(--ink-soft)]">
-              <MicIcon size={16} />
-            </motion.span>
-          </div>
+      {/* Paying sits ABOVE the input, not in place of it. The shopper can still
+          ask something with the total in front of them, which is exactly when
+          a last question tends to arrive. */}
+      <AnimatePresence initial={false}>
+        {pay && (
+          <motion.div layout {...moves.session.chipRow} className="w-full">
+            {pay}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <motion.div layout transition={moves.session.fold} className="flex w-full items-center gap-2">
+        <div className="flex h-10 flex-1 items-center justify-between gap-3 rounded-[40px] border border-[var(--field-border)] bg-[var(--field-bg)] px-4 shadow-[0_4px_4px_rgba(0,0,0,0.04)]">
+          {/* Speaking replaces the field's contents rather than the field, so
+              the bar itself never moves while a command is being said. */}
+          {speaking ? (
+            <>
+              <motion.span
+                {...moves.voice.transcript}
+                className="min-w-0 flex-1 truncate font-[var(--font-ui)] text-[12px] italic text-black"
+              >
+                {speaking}
+              </motion.span>
+              <span className="shrink-0 text-[var(--ink-soft)]">
+                <Waveform bars={4} />
+              </span>
+            </>
+          ) : (
+            <>
+              <input
+                ref={inputRef}
+                placeholder={dock.placeholder}
+                className="h-full min-w-0 flex-1 bg-transparent font-[var(--font-ui)] text-[12px] text-black outline-none placeholder:text-black/60"
+              />
+              <motion.span whileTap={moves.assistant.press} className="shrink-0 text-[var(--ink-soft)]">
+                <MicIcon size={16} />
+              </motion.span>
+            </>
+          )}
+        </div>
 
           <AnimatePresence initial={false}>
             {bagCount > 0 && (
@@ -183,8 +214,7 @@ export function Dock({
               </motion.button>
             )}
           </AnimatePresence>
-        </motion.div>
-      )}
+      </motion.div>
     </motion.div>
   );
 }
