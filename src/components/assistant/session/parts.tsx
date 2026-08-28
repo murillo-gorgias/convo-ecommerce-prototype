@@ -31,6 +31,38 @@ import { CheckIcon, HeartIcon, StackIcon } from '../icons';
  */
 
 /* ==========================================================================
+ * WHAT IS ALLOWED TO MORPH
+ *
+ * SHAPES MORPH. TEXT NEVER DOES.
+ *
+ * A layout animation works by measuring a box before and after, then scaling
+ * the difference away. That is exactly right for a container changing shape —
+ * a card opening out, a section folding to a line — and exactly wrong for
+ * anything inside it, because the scale is applied to the contents too. Words
+ * stretch and squash, and icons that sit with words stretch with them. It is
+ * the single thing that makes an otherwise good transition look cheap.
+ *
+ * So every run of text, and every icon that belongs to text, is wrapped in
+ * `Steady`. It moves with its container and is never scaled by it.
+ *
+ * Use it for anything with words in it that lives inside a `layout` element.
+ * ========================================================================== */
+
+export function Steady({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <motion.div layout="position" className={className}>
+      {children}
+    </motion.div>
+  );
+}
+
+/* ==========================================================================
  * TYPING
  * ========================================================================== */
 
@@ -195,10 +227,12 @@ export function Section({
   children: React.ReactNode;
   innerRef?: React.Ref<HTMLDivElement>;
 }) {
+  /* No `layout` here. A section only ever grows downwards as its parts arrive,
+     and every part animates its own entrance — so there is no shape change
+     worth animating, and a layout animation would scale every word in it. */
   return (
     <motion.section
       ref={innerRef}
-      layout
       {...moves.session.section}
       className="flex w-full scroll-mt-[100px] flex-col items-start gap-3"
     >
@@ -360,9 +394,9 @@ export function ImageTile({
       />
 
       {tile.caption && (
-        <span className="px-2 py-1 font-[var(--font-ui)] text-[12px] font-medium text-black">
+        <Steady className="px-2 py-1 font-[var(--font-ui)] text-[12px] font-medium text-black">
           {tile.caption}
-        </span>
+        </Steady>
       )}
 
       {/* The ring that marks a chosen tile. */}
@@ -420,33 +454,37 @@ export function Confirmed({
     <motion.div
       layout
       transition={moves.session.fold}
-      className={`flex h-[72px] w-full items-center gap-4 overflow-hidden rounded-[24px] border border-[var(--confirmed-border)] bg-[var(--confirmed-bg)] pl-5 ${
-        thumbs.length > 1 ? 'pr-5' : ''
-      }`}
+      className="flex h-[72px] w-full items-center gap-4 overflow-hidden rounded-[var(--fold-radius)] border border-[var(--confirmed-border)] bg-[var(--confirmed-bg)] py-1 pl-5 pr-1"
     >
-      <motion.span {...moves.session.tick} className="shrink-0 text-[var(--ink-soft)]">
-        {count ? <StackWithCount count={count} /> : <CheckIcon size={24} />}
-      </motion.span>
+      {/* The mark and the words travel with the row and are never scaled by
+          it — see the rule at the top of this file. */}
+      <Steady className="flex min-w-0 flex-1 items-center gap-4">
+        <motion.span {...moves.session.tick} className="shrink-0 text-[var(--ink-soft)]">
+          {count ? <StackWithCount count={count} /> : <CheckIcon size={24} />}
+        </motion.span>
 
-      <motion.span
-        {...moves.session.line}
-        className="shrink-0 whitespace-nowrap font-[var(--font-ui)] text-[14px] font-medium leading-[20px] text-[var(--ink-soft)]"
-      >
-        {label}
-      </motion.span>
-
-      {answer && (
         <motion.span
           {...moves.session.line}
-          className="shrink-0 whitespace-nowrap font-[var(--font-ui)] text-[14px] leading-[20px] text-[var(--ink-soft)]"
+          className="shrink-0 whitespace-nowrap font-[var(--font-ui)] text-[14px] font-medium leading-[20px] text-[var(--ink-soft)]"
         >
-          {answer}
+          {label}
         </motion.span>
-      )}
 
-      {/* The evidence. A single answer pushes its one thumbnail to the edge;
-          several sit together right after the label. */}
-      <span className={`flex shrink-0 items-center gap-1 ${thumbs.length > 1 ? '' : 'ml-auto'}`}>
+        {answer && (
+          <motion.span
+            {...moves.session.line}
+            className="shrink-0 whitespace-nowrap font-[var(--font-ui)] text-[14px] leading-[20px] text-[var(--ink-soft)]"
+          >
+            {answer}
+          </motion.span>
+        )}
+      </Steady>
+
+      {/* The evidence, inset by the same 4px on every side. The row's corner
+          and the thumbnail's corner are concentric — the outer radius less the
+          inset — which is what makes them read as one object rather than a
+          picture dropped into a box. */}
+      <span className="flex shrink-0 items-center gap-1">
         {thumbs.map((thumb) => (
           <motion.img
             key={thumb.id}
@@ -454,7 +492,8 @@ export function Confirmed({
             transition={moves.session.thumbTravel}
             src={thumb.image}
             alt=""
-            className="h-16 w-16 rounded-[12px] object-cover shadow-[0_4px_4px_rgba(0,0,0,0.03)]"
+            draggable={false}
+            className="h-16 w-16 rounded-[var(--fold-inner-radius)] object-cover shadow-[0_4px_4px_rgba(0,0,0,0.03)]"
           />
         ))}
       </span>

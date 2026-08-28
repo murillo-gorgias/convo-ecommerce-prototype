@@ -99,7 +99,6 @@ export function Answer({
         if (typeof innerRef === 'function') innerRef(node);
         else if (innerRef) (innerRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
       }}
-      layout
       {...moves.session.section}
       className="flex w-full scroll-mt-[100px] flex-col items-start gap-4"
     >

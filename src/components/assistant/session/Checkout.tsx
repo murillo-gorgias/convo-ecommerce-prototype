@@ -38,7 +38,6 @@ export function Checkout({
   return (
     <motion.div
       ref={innerRef}
-      layout
       {...moves.session.section}
       className="flex w-full scroll-mt-[100px] flex-col items-start gap-3"
     >
@@ -142,7 +141,6 @@ export function Confirmation({
   return (
     <motion.div
       ref={innerRef}
-      layout
       {...moves.session.section}
       className="flex w-full scroll-mt-[100px] flex-col items-start gap-3"
     >

@@ -180,8 +180,14 @@ export function Dock({
         )}
       </AnimatePresence>
 
+      {/* The dock changes height as suggestions come and go. `layout` carries
+          that, and everything with words in it below is marked `layout="position"`
+          so the height change never stretches the type. */}
       <motion.div layout transition={moves.session.fold} className="flex w-full items-center gap-2">
-        <div className="flex h-10 flex-1 items-center justify-between gap-3 rounded-[40px] border border-[var(--field-border)] bg-[var(--field-bg)] px-4 shadow-[0_4px_4px_rgba(0,0,0,0.04)]">
+        <motion.div
+          layout="position"
+          className="flex h-10 flex-1 items-center justify-between gap-3 rounded-[40px] border border-[var(--field-border)] bg-[var(--field-bg)] px-4 shadow-[0_4px_4px_rgba(0,0,0,0.04)]"
+        >
           {/* Speaking replaces the field's contents rather than the field, so
               the bar itself never moves while a command is being said. */}
           {speaking ? (
@@ -227,12 +233,12 @@ export function Dock({
               </motion.button>
             </>
           )}
-        </div>
+        </motion.div>
 
           <AnimatePresence initial={false}>
             {bagCount > 0 && (
               <motion.button
-                layout
+                layout="position"
                 {...moves.session.badge}
                 whileTap={moves.assistant.press}
                 aria-label={`${bagCount} in bag`}

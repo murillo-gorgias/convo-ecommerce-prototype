@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { perfectFit, productDetail, type Recommendation } from '../../../content/journey';
 import { moves, stagger } from '../../../motion/motion';
 import { CartIcon, CheckIcon, ChevronDownIcon, StarIcon } from '../icons';
-import { Body, Label, Line, Section, useSectionReveal } from './parts';
+import { Body, Label, Line, Section, Steady, useSectionReveal } from './parts';
 
 /**
  * ============================================================================
@@ -209,6 +209,7 @@ function OpenPiece({
     >
       <Gallery piece={piece} />
 
+      <Steady>
       <motion.div {...moves.session.openDetail} className="px-4">
         <div className="mt-4 flex items-baseline justify-between gap-3">
           <h3 className="font-[var(--font-ui)] text-[14px] leading-[21px] text-black">
@@ -253,10 +254,13 @@ function OpenPiece({
             transition={moves.assistant.shapeChange}
             className="flex h-12 flex-1 items-center justify-center gap-2 rounded-[24px] bg-[var(--ink)] px-4 text-white"
           >
+            {/* The button's box may change as the label does; the label itself
+                crossfades and is never stretched into the new one. */}
             <AnimatePresence mode="wait" initial={false}>
               {inBag ? (
                 <motion.span
                   key="added"
+                  layout="position"
                   {...moves.assistant.contentSwap}
                   className="flex items-center gap-2"
                 >
@@ -268,6 +272,7 @@ function OpenPiece({
               ) : (
                 <motion.span
                   key="add"
+                  layout="position"
                   {...moves.assistant.contentSwap}
                   className="flex items-center gap-2"
                 >
@@ -281,6 +286,7 @@ function OpenPiece({
           </motion.button>
         </div>
       </motion.div>
+      </Steady>
     </motion.article>
   );
 }
@@ -437,33 +443,43 @@ export function CollapsedPiece({
   onReopen: () => void;
 }) {
   return (
-    <motion.div layout transition={moves.session.open} className="flex w-full items-stretch">
-      <motion.div
-        {...moves.session.collapsedPiece}
-        className="flex flex-1 flex-col justify-center gap-4 rounded-l-[24px] border-y border-l border-[var(--confirmed-border)] bg-[var(--confirmed-bg)] p-5"
-      >
-        <span className="font-[var(--font-ui)] text-[14px] font-medium leading-[20px] text-[var(--ink-soft)]">
+    /* Built to exactly the same rule as every other folded line: one bordered
+       row, the words on the left, the evidence inset on the right by
+       `--stack-inset` with a concentric corner. It used to be two shapes
+       butted together with different radii and no gap, which is what made the
+       collapsed cards read as misaligned. */
+    <motion.div
+      layout
+      transition={moves.session.open}
+      className="flex w-full items-center gap-4 overflow-hidden rounded-[var(--fold-radius)] border border-[var(--confirmed-border)] bg-[var(--confirmed-bg)] p-1 pl-5"
+    >
+      <Steady className="flex min-w-0 flex-1 flex-col items-start gap-3 py-3">
+        <motion.span
+          {...moves.session.collapsedPiece}
+          className="truncate font-[var(--font-ui)] text-[14px] font-medium leading-[20px] text-[var(--ink-soft)]"
+        >
           {piece.name}
-        </span>
+        </motion.span>
         <motion.button
+          {...moves.session.collapsedPiece}
           whileTap={moves.assistant.press}
           onClick={onReopen}
           className="w-fit rounded-[32px] border border-[var(--control-border)] bg-black px-3 py-2 font-[var(--font-ui)] text-[10px] font-medium text-white"
         >
           {productDetail.reopen}
         </motion.button>
-      </motion.div>
+      </Steady>
 
       <motion.span
         layoutId={`piece-${piece.id}`}
         transition={moves.session.open}
-        className="relative block w-[112px] shrink-0 overflow-hidden rounded-r-[12px] bg-[var(--paper-warm)]"
+        className="relative block h-[96px] w-[104px] shrink-0 overflow-hidden rounded-[var(--fold-inner-radius)] bg-[var(--paper-warm)]"
       >
         <img
           src={piece.gallery[0]}
           alt=""
           draggable={false}
-        className="h-full w-full scale-[1.03] object-cover"
+          className="h-full w-full scale-[1.03] object-cover"
         />
       </motion.span>
     </motion.div>

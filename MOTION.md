@@ -254,6 +254,45 @@ currently 280 milliseconds.
 - `ACKNOWLEDGE_TIME` — how long a one-answer section stays open after being tapped, so the
   tap is seen before the section closes over it. 460ms.
 
+## Shapes morph. Text never does.
+
+The rule that governs every transition in the session, and the one worth protecting hardest.
+
+A layout animation works by measuring a box before and after, then scaling away the
+difference. That is exactly right for a container changing shape — a card opening out, a
+section folding to a line, the dock growing as suggestions arrive. It is exactly wrong for
+anything inside it, because the scale lands on the contents too: words stretch and squash,
+and icons sitting with words stretch with them.
+
+So:
+
+- **`layout`** goes on the thing whose shape genuinely changes — the photograph, the folded
+  row, the dock, the bag button.
+- **`Steady`** (in `parts.tsx`, a `layout="position"` wrapper) goes around every run of text
+  and every icon that belongs to text inside one of those. It travels with its container and
+  is never scaled by it.
+- **Nothing at all** goes on a container that only grows downwards as content arrives — a
+  section, an answer, the bag. Each part animates its own entrance, so there is no shape
+  change to carry, and `layout` there would scale every word for no gain.
+
+Verified by sampling: during the full collapse of an opened piece the photograph goes from
+430×452 to 104×96, and the name beside it holds a transform of exactly `1.000 / 1.000` the
+whole way.
+
+## Stacked shapes
+
+Wherever something sits inside something else — a photograph inside the line a section folded
+into, the piece inside its collapsed card — three things hold:
+
+- They are **inset** by `--stack-inset` on every side, so they never touch.
+- Their corners are **concentric**: `--fold-inner-radius` is `--fold-radius` less the inset.
+  Matching the radii exactly makes the inner shape look too round for its size; leaving them
+  unrelated makes the pair look like a picture dropped in a box.
+- They **align** — same treatment on every folded row, including the collapsed product card,
+  which is built to the same rule rather than as its own shape.
+
+All three values are tokens in `src/brand/tokens.css`.
+
 ### Four things that silently switch animations off
 
 These caught us once each and are worth knowing before debugging a missing animation.
