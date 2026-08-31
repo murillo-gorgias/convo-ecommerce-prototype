@@ -8,8 +8,12 @@
  */
 
 export const assistantCopy = {
-  /** Shown in the wide bar before anything has been typed. */
-  placeholder: 'Ask anything...',
+  /** Rotated through the wide bar before anything has been typed. */
+  prompts: [
+    'Find jewelry for a summer wedding',
+    'What necklace suits this neckline?',
+    'Show me gifts under $200',
+  ],
 
   /** Shown inside the console's own input once it is open. */
   consolePlaceholder: 'Ask anything...',

@@ -3,7 +3,14 @@ import { brand } from '../../../content/store';
 import { assistantCopy } from '../../../content/assistant';
 import { dock } from '../../../content/journey';
 import { moves } from '../../../motion/motion';
-import { CartIcon, ChevronLeftIcon, CloseIcon, MicIcon, Waveform } from '../icons';
+import {
+  CartIcon,
+  ChevronLeftIcon,
+  CloseIcon,
+  MicIcon,
+  MoreLikeThisIcon,
+  Waveform,
+} from '../icons';
 
 /**
  * ============================================================================
@@ -80,9 +87,10 @@ function GlassButton({
 /* ==========================================================================
  * THE DOCK
  *
- * The input is permanent — typing or speaking is always available, and never
- * required. Above it sit the suggestions the open section has raised. They
- * come and go with the section, which is why they animate rather than appear.
+ * Typing or speaking stays available throughout the conversation, until the
+ * final payment swipe becomes the only action left. Above the input sit the
+ * suggestions the open section has raised. They come and go with the section,
+ * which is why they animate rather than appear.
  * ========================================================================== */
 
 export type Suggestion = {
@@ -92,6 +100,8 @@ export type Suggestion = {
   /** The one suggestion that moves the session on. Dark, so it reads as the
    *  next step rather than another option. */
   primary?: boolean;
+  /** Gives the More like this prompt its icon-led elongated treatment. */
+  moreLikeThis?: boolean;
   /**
    * This one is SAID, not pressed. It stays on screen as a prompt — it is
    * still what you could ask — but the microphone is what asks it. Tapping it
@@ -116,7 +126,7 @@ export function Dock({
   inputRef?: React.Ref<HTMLInputElement>;
   /** How many things are in the bag. The button only exists once it is not empty. */
   bagCount?: number;
-  /** The pay control, shown ABOVE the input rather than in place of it. */
+  /** The pay control, which replaces the input and bag at checkout. */
   pay?: React.ReactNode;
   /** What the shopper is currently saying out loud, shown as a live transcript. */
   speaking?: string;
@@ -158,14 +168,15 @@ export function Dock({
                 whileTap={suggestion.spoken ? undefined : moves.assistant.press}
                 onClick={suggestion.spoken ? undefined : suggestion.onSelect}
                 aria-disabled={suggestion.spoken || undefined}
-                className={`shrink-0 whitespace-nowrap rounded-[32px] border border-[var(--chip-border)] px-4 py-[11px] font-[var(--font-ui)] text-[12px] font-medium leading-[15px] ${
+                className={`shrink-0 whitespace-nowrap rounded-[32px] border border-[var(--chip-border)] py-[11px] font-[var(--font-ui)] text-[12px] font-medium leading-[15px] ${
                   suggestion.spoken ? 'cursor-default' : ''
-                } ${
+                } ${suggestion.moreLikeThis ? 'flex min-w-[142px] items-center justify-center gap-2 px-5' : 'px-3'} ${
                   suggestion.primary
                     ? 'bg-[var(--control-dark)] text-white'
                     : 'bg-[var(--chip)] text-black'
                 }`}
               >
+                {suggestion.moreLikeThis && <MoreLikeThisIcon size={19} />}
                 {suggestion.label}
               </motion.button>
             ))}
@@ -173,9 +184,8 @@ export function Dock({
         )}
       </AnimatePresence>
 
-      {/* Paying sits ABOVE the input, not in place of it. The shopper can still
-          ask something with the total in front of them, which is exactly when
-          a last question tends to arrive. */}
+      {/* Checkout has one action left, so the swipe replaces both the open
+          question field and the bag instead of competing with them. */}
       <AnimatePresence initial={false}>
         {pay && (
           <motion.div layout {...moves.session.chipRow} className="w-full">
@@ -184,10 +194,11 @@ export function Dock({
         )}
       </AnimatePresence>
 
-      {/* The dock changes height as suggestions come and go. `layout` carries
-          that, and everything with words in it below is marked `layout="position"`
-          so the height change never stretches the type. */}
-      <motion.div layout transition={moves.session.fold} className="flex w-full items-center gap-2">
+      <motion.div
+        layout
+        transition={moves.session.fold}
+        className={pay ? 'hidden' : 'flex w-full items-center gap-2'}
+      >
         <motion.div
           layout="position"
           className="flex h-10 flex-1 items-center justify-between gap-3 rounded-[40px] border border-[var(--field-border)] bg-[var(--field-bg)] px-4 shadow-[0_4px_4px_rgba(0,0,0,0.04)]"
@@ -221,7 +232,7 @@ export function Dock({
                 onClick={onSpeak}
                 aria-label={onSpeak ? dock.speak : undefined}
                 whileTap={onSpeak ? moves.assistant.press : undefined}
-                className="relative shrink-0 text-[var(--ink-soft)]"
+                className="relative grid h-[21px] w-[21px] shrink-0 place-items-center text-[var(--ink-soft)]"
               >
                 {onSpeak && (
                   <motion.span
@@ -239,26 +250,26 @@ export function Dock({
           )}
         </motion.div>
 
-          <AnimatePresence initial={false}>
-            {bagCount > 0 && (
-              <motion.button
-                layout="position"
+        <AnimatePresence initial={false}>
+          {bagCount > 0 && (
+            <motion.button
+              layout="position"
+              {...moves.session.badge}
+              whileTap={moves.assistant.press}
+              aria-label={`${bagCount} in bag`}
+              className="relative grid h-10 w-10 shrink-0 place-items-center rounded-full border border-[var(--field-border)] bg-[var(--field-bg)] text-[var(--ink-soft)] shadow-[0_4px_4px_rgba(0,0,0,0.04)]"
+            >
+              <CartIcon size={18} />
+              <motion.span
+                key={bagCount}
                 {...moves.session.badge}
-                whileTap={moves.assistant.press}
-                aria-label={`${bagCount} in bag`}
-                className="relative grid h-10 w-10 shrink-0 place-items-center rounded-full border border-[var(--field-border)] bg-[var(--field-bg)] text-[var(--ink-soft)] shadow-[0_4px_4px_rgba(0,0,0,0.04)]"
+                className="absolute -right-[2px] -top-[2px] grid h-[18px] min-w-[18px] place-items-center rounded-full bg-[var(--ink-soft)] px-1 font-[var(--font-ui)] text-[10px] font-semibold leading-[14px] text-white"
               >
-                <CartIcon size={18} />
-                <motion.span
-                  key={bagCount}
-                  {...moves.session.badge}
-                  className="absolute -right-[2px] -top-[2px] grid h-[18px] min-w-[18px] place-items-center rounded-full bg-[var(--ink-soft)] px-1 font-[var(--font-ui)] text-[10px] font-semibold leading-[14px] text-white"
-                >
-                  {bagCount}
-                </motion.span>
-              </motion.button>
-            )}
-          </AnimatePresence>
+                {bagCount}
+              </motion.span>
+            </motion.button>
+          )}
+        </AnimatePresence>
       </motion.div>
     </motion.div>
   );

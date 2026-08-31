@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { motion } from 'motion/react';
 import type { Tile } from '../../../content/journey';
 import { moves, pace } from '../../../motion/motion';
@@ -31,9 +32,10 @@ export function PickOne({
   onSettled,
   columns,
   sharedId,
+  confirmationIcon,
   innerRef,
 }: {
-  section: { label: string; prompt: string; confirmedLabel: string };
+  section: { label: string; prompt: string };
   tiles: readonly Tile[];
   picked?: string;
   phase: 'open' | 'folding' | 'closed';
@@ -44,6 +46,7 @@ export function PickOne({
   columns: 2 | 3;
   /** Namespaces this section's shared images, e.g. `style` or `size`. */
   sharedId: (id: string) => string;
+  confirmationIcon: ReactNode;
   innerRef?: React.Ref<HTMLDivElement>;
 }) {
   const { speaking, ready, onSpoken } = useSectionReveal();
@@ -61,8 +64,8 @@ export function PickOne({
 
       {phase === 'closed' && chosen ? (
         <Confirmed
-          label={section.confirmedLabel}
-          answer={chosen.caption}
+          label={chosen.caption ?? ''}
+          icon={confirmationIcon}
           thumbs={[{ id: sharedId(chosen.id), image: chosen.image }]}
         />
       ) : (

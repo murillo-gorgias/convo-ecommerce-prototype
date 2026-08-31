@@ -285,6 +285,14 @@ export const moves = {
       transition: { duration: duration.considered, ease: easing.refined, delay: 0.5 },
     },
 
+    /** Example questions rolling through the resting input bar. */
+    promptSwap: {
+      initial: { opacity: 0, y: '65%' },
+      animate: { opacity: 1, y: '0%' },
+      exit: { opacity: 0, y: '-65%' },
+      transition: { duration: duration.base, ease: easing.refined },
+    },
+
     /** Placeholder text and icons fading across as the shape changes.
      *  Deliberately faster than the morph so contents never lag the container. */
     contentSwap: {
@@ -627,13 +635,6 @@ export const moves = {
     shimmer: {
       animate: { backgroundPosition: ['200% 0', '-200% 0'] },
       transition: { duration: 1.6, ease: 'linear' as const, repeat: Infinity },
-    },
-
-    /** The mark beside the sign-in line: a shape that opens, turns and closes
-     *  again. Door, to circle, to door. */
-    unlockMark: {
-      animate: { rotate: [0, 180, 360], borderRadius: ['4px', '50%', '4px'] },
-      transition: { duration: 1.8, ease: easing.refined, repeat: Infinity },
     },
 
     /** The tick that lands when a section is confirmed. */

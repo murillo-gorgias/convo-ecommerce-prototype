@@ -22,7 +22,7 @@ import { Line, Said, useAfter } from './session/parts';
  *
  * Two beats live here. The offer, and then the moment the account opens: the
  * row of suggestions gives way to a single line, light travels across the
- * words, and a small mark opens, turns and closes again beside it.
+ * words, and two offset rings turn beside it.
  * That second beat is the only place in the session where the assistant makes
  * the shopper wait, so it is the one place worth decorating — and it is held
  * for `pace.beforeExpanding` before the session takes the screen, so the
@@ -82,7 +82,7 @@ export function SignIn({
       <motion.div
         animate={{ opacity: offering ? 1 : 0 }}
         transition={moves.assistant.offerReveal}
-        className={offering ? undefined : 'pointer-events-none'}
+        className={`grid h-[84px] items-end [&>*]:w-full ${offering ? '' : 'pointer-events-none'}`}
       >
         <AnimatePresence mode="wait" initial={false}>
           {opened ? (
@@ -169,11 +169,18 @@ function Opening() {
       {...moves.assistant.contentSwap}
       className="flex h-16 items-center gap-4 rounded-[24px] border border-[var(--confirmed-border)] bg-[var(--confirmed-bg)] px-5"
     >
-      {/* A mark that opens, turns and closes again. */}
-      <motion.span
-        {...moves.session.unlockMark}
-        className="h-6 w-6 shrink-0 border-[1.5px] border-[var(--ink-soft)]"
-      />
+      <span className="relative flex h-12 w-12 shrink-0 items-center justify-center text-[var(--ink-soft)]">
+        <motion.span
+          className="absolute h-12 w-12 rounded-full border-2 border-current border-x-transparent"
+          animate={{ rotate: [0, 180, 360] }}
+          transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+        />
+        <motion.span
+          className="absolute h-8 w-8 rounded-full border-2 border-current border-y-transparent opacity-55"
+          animate={{ rotate: [0, -180, -360] }}
+          transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut', delay: 0.2 }}
+        />
+      </span>
 
       {/* Light travelling across the words while the account opens. */}
       <motion.span

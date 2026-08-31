@@ -19,6 +19,7 @@
    * ---------------------------------------------------------------------- */
   --font-display: 'Archivo', Arial, Helvetica, sans-serif;
   --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-serif: Georgia, 'Times New Roman', serif;
 
   /* ---- Type scale — measured from the live storefront ------------------- */
   --type-nav-size: 14px;
@@ -96,8 +97,8 @@
   --glow-warm: rgba(224, 178, 148, 0.38);
   --glow-blush: rgba(238, 205, 190, 0.34);
 
-  /* What the shopper said, shown back to them. */
-  --query-bubble: rgba(235, 235, 235, 0.8);
+  /* What the shopper said, shown back to them: warm charcoal glass. */
+  --query-bubble: rgba(103, 96, 91, 0.8);
 
   /* A section that has been answered and folded away. */
   --confirmed-bg: rgba(255, 255, 255, 0.4);

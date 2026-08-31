@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { perfectFit, productDetail, type Recommendation } from '../../../content/journey';
 import { moves, stagger } from '../../../motion/motion';
-import { CartIcon, CheckIcon, ChevronDownIcon, StarIcon } from '../icons';
+import { CartIcon, CheckIcon, ChevronDownIcon, MoreLikeThisIcon, StarIcon } from '../icons';
 import { Body, Label, Line, Section, Steady, useSectionReveal } from './parts';
 
 /**
@@ -138,7 +138,12 @@ function GridPiece({
       className="flex w-full flex-col items-stretch text-left"
       aria-label={`${piece.name}, $${piece.price}`}
     >
-      <Photograph piece={piece} className="h-[236px] w-full rounded-[12px]" />
+      <span className="relative block">
+        <Photograph piece={piece} className="h-[236px] w-full rounded-[12px]" />
+        <span className="pointer-events-none absolute bottom-3 left-3 grid h-10 w-10 place-items-center rounded-[24px] border border-white/70 bg-white/80 text-[var(--ink-soft)] shadow-[0_6px_14px_rgba(0,0,0,0.14)] backdrop-blur-xl">
+          <MoreLikeThisIcon />
+        </span>
+      </span>
 
       <div className="mt-2 flex items-baseline gap-2">
         <span className="min-w-0 flex-1 truncate font-[var(--font-ui)] text-[14px] leading-[21px] text-black">
