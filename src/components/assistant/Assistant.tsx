@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { assistantCopy } from '../../content/assistant';
-import { moves, pace } from '../../motion/motion';
+import { moves, pace, prefersReducedMotion } from '../../motion/motion';
 import { CloseIcon, ExpandIcon, MicIcon, SubmitIcon, Waveform } from './icons';
 import { THINKING } from './thinking/variations';
 import { SignIn } from './SignIn';
@@ -37,6 +37,9 @@ const COLLAPSE_AFTER = 120;
 
 /** How long the assistant appears to think before it answers. */
 const THINKING_TIME = 2200;
+
+/** How long each example prompt rests in the opening bar. */
+const PROMPT_TIME = 1800;
 
 /**
  * How long the account takes to open, once accepted. The confirmation is then
@@ -228,16 +231,39 @@ function containerClass(shape: Shape) {
  * ========================================================================== */
 
 function BarContents({ onOpen, onVoice }: { onOpen: () => void; onVoice: () => void }) {
+  const [prompt, setPrompt] = useState(0);
+
+  useEffect(() => {
+    if (prefersReducedMotion()) return;
+
+    const timer = window.setInterval(
+      () => setPrompt((current) => (current + 1) % assistantCopy.prompts.length),
+      PROMPT_TIME,
+    );
+    return () => window.clearInterval(timer);
+  }, []);
+
   return (
     <motion.div
       {...moves.assistant.contentSwap}
       className="absolute inset-0 flex h-12 items-center justify-between pl-4 pr-1"
     >
       <button
+        type="button"
         onClick={onOpen}
-        className="flex-1 whitespace-nowrap text-left font-[var(--font-ui)] text-[length:var(--type-body-size)] leading-[var(--type-body-line)] text-[var(--ink-muted)]"
+        aria-label={assistantCopy.labels.open}
+        className="relative h-full flex-1 overflow-hidden whitespace-nowrap text-left font-[var(--font-ui)] text-[length:var(--type-body-size)] leading-[var(--type-body-line)] text-[var(--ink-muted)]"
       >
-        {assistantCopy.placeholder}
+        <AnimatePresence initial={false}>
+          <motion.span
+            key={prompt}
+            {...moves.assistant.promptSwap}
+            aria-hidden
+            className="absolute inset-0 flex items-center"
+          >
+            {assistantCopy.prompts[prompt]}
+          </motion.span>
+        </AnimatePresence>
       </button>
       <motion.button
         whileTap={moves.assistant.press}
@@ -319,8 +345,8 @@ function ConsoleContents({
         <AnimatePresence mode="wait">
           {(listening || submitted) && transcript && (
             <motion.div key="transcript" {...moves.voice.transcript} className="mb-4 flex justify-end">
-              <span className="max-w-[280px] rounded-[var(--radius-control)] bg-[var(--paper-warm)] px-3 py-2 text-right font-[var(--font-ui)] text-[length:var(--type-body-size)] leading-[var(--type-body-line)] text-[var(--ink-soft)]">
-                {transcript}
+              <span className="flex h-10 max-w-full items-center rounded-[40px] bg-[var(--query-bubble)] px-3 text-right font-[var(--font-ui)] text-[length:var(--type-body-size)] font-medium leading-[var(--type-body-line)] text-[var(--on-image)]">
+                <span className="truncate">{transcript}</span>
               </span>
             </motion.div>
           )}
@@ -336,7 +362,7 @@ function ConsoleContents({
       </div>
 
       {/* Input */}
-      <div className="flex items-center gap-2 rounded-[var(--radius-pill)] border border-[var(--assistant-border)] bg-[var(--paper-warm)] pl-4 pr-1">
+      <div className="flex items-center gap-2 rounded-[var(--radius-pill)] border border-[var(--field-border)] bg-[var(--field-bg)] pl-4 pr-1 shadow-[0_2px_3px_rgba(0,0,0,0.05)] backdrop-blur-[10px]">
         <input
           ref={inputRef}
           value={typed}

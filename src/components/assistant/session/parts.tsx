@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { duration, moves, pace, prefersReducedMotion, stagger, typingSpeed } from '../../../motion/motion';
 import type { Phrase, Tile } from '../../../content/journey';
-import { CheckIcon, HeartIcon, StackIcon } from '../icons';
+import { HeartIcon, StackIcon } from '../icons';
 
 /**
  * ============================================================================
@@ -110,7 +110,7 @@ export function Said({ children }: { children: string }) {
     <div className="flex w-full justify-end">
       <motion.span
         {...moves.session.said}
-        className="flex h-10 items-center rounded-[40px] bg-[var(--query-bubble)] px-3 font-[var(--font-ui)] text-[14px] font-medium leading-[20px] text-[var(--ink-soft)]"
+        className="flex h-10 items-center rounded-[40px] bg-[var(--query-bubble)] px-3 font-[var(--font-ui)] text-[14px] font-medium leading-[20px] text-[var(--on-image)]"
       >
         {children}
       </motion.span>
@@ -310,7 +310,7 @@ export function Label({ children }: { children: string }) {
   return (
     <motion.p
       {...moves.session.label}
-      className="w-full font-[var(--font-ui)] text-[length:var(--type-label-size)] font-semibold uppercase leading-[var(--type-said-line)] text-black"
+      className="w-full [font-family:var(--font-serif)] text-[length:var(--type-label-size)] font-semibold uppercase leading-[var(--type-said-line)] text-black"
     >
       {children}
     </motion.p>
@@ -527,14 +527,14 @@ export function ImageTile({
 export function Confirmed({
   label,
   count,
-  answer,
+  icon,
   thumbs,
 }: {
   label: string;
   /** Only shown when the shopper chose more than one thing. */
   count?: number;
-  /** The chosen option, written out. Used where the answer has a name. */
-  answer?: string;
+  /** A mark tailored to the answer when the shopper chose one thing. */
+  icon?: ReactNode;
   /** `id` matches the tile the thumbnail travelled from. */
   thumbs: { id: string; image: string }[];
 }) {
@@ -548,7 +548,7 @@ export function Confirmed({
           it — see the rule at the top of this file. */}
       <Steady className="flex min-w-0 flex-1 items-center gap-4">
         <motion.span {...moves.session.tick} className="shrink-0 text-[var(--ink-soft)]">
-          {count ? <StackWithCount count={count} /> : <CheckIcon size={24} />}
+          {count ? <StackWithCount count={count} /> : icon}
         </motion.span>
 
         <motion.span
@@ -558,14 +558,6 @@ export function Confirmed({
           {label}
         </motion.span>
 
-        {answer && (
-          <motion.span
-            {...moves.session.line}
-            className="shrink-0 whitespace-nowrap font-[var(--font-ui)] text-[14px] leading-[20px] text-[var(--ink-soft)]"
-          >
-            {answer}
-          </motion.span>
-        )}
       </Steady>
 
       {/* The evidence, inset by the same 4px on every side. The row's corner

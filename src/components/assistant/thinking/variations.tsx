@@ -1,17 +1,15 @@
-import { motion } from 'motion/react';
+import { motion, useReducedMotion } from 'motion/react';
 import { easing } from '../../../motion/motion';
 
 /**
  * ============================================================================
- * THINKING ANIMATIONS — five variations on a morphing line
+ * THINKING ANIMATIONS — five minimalist motion studies
  * ============================================================================
  *
  * What the assistant shows while it works.
  *
- * All five share one idea: **the line itself changes shape.** It is never a
- * static track with something travelling along it. A straight line bends into
- * a curve, turns, and straightens again — while light runs through it. The
- * shape change and the travel happen at the same time.
+ * Each one gives the assistant a restrained physical gesture while it works.
+ * The active loader uses jewelry itself rather than a generic progress mark.
  *
  * Each is drawn in ink at the size it appears in the console.
  * Compare them side by side at  /#thinking
@@ -69,51 +67,61 @@ export function Arc() {
 }
 
 /* ==========================================================================
- * 2. CLASP
- * The line closes into a ring, holds for a beat, then opens back out. Light
- * runs the whole time, so it reads as a chain finding its clasp.
+ * 2. TWIST CHAIN
+ * Alternating oval links draw themselves into an unmistakable jewelry chain,
+ * then retrace from the opposite end before beginning again.
  * ========================================================================== */
 
-export function Clasp() {
-  const open = 'M12 24 C26 24 40 24 55 24 C70 24 84 24 98 24';
-  const ring = 'M55 5 C68 5 79 13 79 24 C79 35 68 43 55 43 C42 43 31 35 31 24 C31 13 42 5 55 5';
+export function TwistChain() {
+  const reduced = useReducedMotion();
+  const links = [
+    { x: 18, angle: -28 },
+    { x: 36, angle: 28 },
+    { x: 54, angle: -28 },
+    { x: 72, angle: 28 },
+    { x: 90, angle: -28 },
+  ];
 
   return (
     <div className={BOX}>
-      <svg width="110" height="48" viewBox="0 0 110 48" fill="none">
-        <motion.path
-          d={open}
-          initial={{ d: open }}
-          stroke="currentColor"
-          strokeWidth="1.2"
-          strokeLinecap="round"
-          strokeOpacity="0.18"
-          animate={{ d: [open, ring, ring, open, open] }}
-          transition={{
-            duration: 4.6,
-            ease: easing.refined,
-            times: [0, 0.3, 0.6, 0.88, 1],
-            repeat: Infinity,
-          }}
-        />
-        <motion.path
-          d={open}
-          initial={{ d: open }}
-          stroke="currentColor"
-          strokeWidth="1.6"
-          strokeLinecap="round"
-          strokeDasharray={DASH}
-          animate={{
-            d: [open, ring, ring, open, open],
-            strokeDashoffset: [164, 0, -164, -328, -492],
-          }}
-          transition={{
-            duration: 4.6,
-            ease: easing.even,
-            times: [0, 0.3, 0.6, 0.88, 1],
-            repeat: Infinity,
-          }}
-        />
+      <svg
+        width="110"
+        height="48"
+        viewBox="0 0 110 48"
+        fill="none"
+        role="img"
+        aria-label="Thinking"
+        className="text-[var(--ink-soft)]"
+      >
+        {links.map((link, index) => {
+          const reveal = 0.06 + index * 0.07;
+          const hide = 0.92 - index * 0.05;
+
+          return (
+            <g key={link.x} transform={`rotate(${link.angle} ${link.x} 24)`}>
+              <motion.ellipse
+                cx={link.x}
+                cy="24"
+                rx="13"
+                ry="6"
+                initial={reduced ? false : { pathLength: 0, opacity: 0 }}
+                animate={reduced ? { pathLength: 1, opacity: 0.72 } : {
+                  pathLength: [0, 0, 1, 1, 0],
+                  opacity: [0, 0, 1, 1, 0],
+                }}
+                transition={{
+                  duration: 3.4,
+                  ease: easing.even,
+                  times: [0, reveal, reveal + 0.18, hide, 1],
+                  repeat: Infinity,
+                }}
+                stroke="currentColor"
+                strokeWidth="1.35"
+                strokeLinecap="round"
+              />
+            </g>
+          );
+        })}
       </svg>
     </div>
   );
@@ -284,10 +292,10 @@ export const thinkingVariations = [
     Component: Arc,
   },
   {
-    id: 'clasp',
-    name: 'Clasp',
-    note: 'The line closes into a ring, holds a beat, then opens back out.',
-    Component: Clasp,
+    id: 'twist-chain',
+    name: 'Twist chain',
+    note: 'Alternating links drawing themselves into a jewelry chain.',
+    Component: TwistChain,
   },
   {
     id: 'ribbon',
@@ -310,4 +318,4 @@ export const thinkingVariations = [
 ] as const;
 
 /** The variation the console currently uses. */
-export const THINKING = Clasp;
+export const THINKING = TwistChain;

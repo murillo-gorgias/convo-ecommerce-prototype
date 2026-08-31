@@ -14,9 +14,8 @@ export function ThinkingGallery() {
           Thinking animations
         </h1>
         <p className="mt-2 max-w-[520px] font-[var(--font-ui)] text-[14px] leading-[22px] text-[var(--ink-muted)]">
-          Five variations on a morphing line. In each one the line itself changes
-          shape while light travels through it — never a static track. Drawn in ink
-          at the size it appears in the console.
+          Five restrained motion studies for the moment the assistant is working.
+          Drawn in ink at the size each appears in the console.
         </p>
 
         <div className="mt-10 grid gap-4 sm:grid-cols-2">

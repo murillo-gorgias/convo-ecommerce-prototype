@@ -125,7 +125,7 @@ export const vibeCheck = {
   minimum: 1,
   /** Said once the selection is confirmed. */
   response: "Good taste. Warm gold, nothing shouting — I've got a read on you now.",
-  confirmedLabel: 'Selection confirmed',
+  confirmedLabel: 'Warm beach vibe',
   tiles: [
     { id: 'pearl-drop', image: asset('/brand/vibe/beaded-pearl-drop.png'), alt: 'Pearl and green beaded layers with a stone drop, worn in strong sun' },
     { id: 'turquoise', image: asset('/brand/vibe/turquoise-beach.png'), alt: 'Chunky turquoise beads with a matching bracelet, worn by the sea' },
@@ -142,9 +142,8 @@ export const vibeCheck = {
  * What the necklace has to work against. One answer, taken immediately.
  */
 export const styleCheck = {
-  label: 'Style check',
+  label: 'Neckline',
   prompt: 'One thing before I pull pieces: what are you wearing?',
-  confirmedLabel: 'Selection confirmed',
   tiles: [
     { id: 'strapless', caption: 'Strapless', image: asset('/brand/neckline/strapless.png'), alt: 'Strapless white dress' },
     { id: 'deep-v', caption: 'Deep V', image: asset('/brand/neckline/deep-v.png'), alt: 'Deep V neckline with a fine chain' },
@@ -160,7 +159,6 @@ export const sizing = {
   label: 'Sizing',
   prompt:
     "Length changes everything about how a necklace reads on you. Two inches shorter and it sits at the collar; two longer and it drops past the collarbone. Here's how each one falls. Pick what connects with you.",
-  confirmedLabel: 'Sizing confirmed',
   tiles: [
     { id: '16', caption: '16” collar', image: asset('/brand/sizing/16-collar.png'), alt: 'Fine chains sitting high at the collar' },
     { id: '18', caption: '18” collarbone', image: asset('/brand/sizing/18-collarbone.png'), alt: 'Chain resting on the collarbone' },
@@ -273,6 +271,7 @@ export const productDetail = {
   addToBag: 'Add to bag',
   added: 'Added',
   reopen: 'Open details',
+  moreLikeThis: 'More like this',
   /** Offered the moment a piece is opened, before anything has been asked. */
   chips: pieceChips,
 } as const;
@@ -543,7 +542,7 @@ export const chips = {
   skip: 'Skip',
 } as const;
 
-/** The permanent field along the bottom. */
+/** The session's question field along the bottom. */
 export const dock = {
   placeholder: 'Ask anything',
   speak: 'Say it',

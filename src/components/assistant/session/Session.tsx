@@ -25,6 +25,7 @@ import { Bag } from './Bag';
 import { Promo } from './Promo';
 import { Checkout, Confirmation } from './Checkout';
 import { SwipeToPay } from './SwipeToPay';
+import { LengthIcon, NecklineIcon } from '../icons';
 
 /**
  * ============================================================================
@@ -197,7 +198,6 @@ export function Session({
   const [promoSettled, setPromoSettled] = useState(from.promoDone);
 
   const [checkoutSettled, setCheckoutSettled] = useState(false);
-  const [paid, setPaid] = useState(false);
 
   /** What is currently being said out loud into the input, if anything. */
   const [saying, setSaying] = useState<string>();
@@ -345,7 +345,6 @@ export function Session({
     setStage((at) => (reached(at, 'checkout') ? at : 'checkout'));
 
   const onPaid = () => {
-    setPaid(true);
     window.setTimeout(
       () => setStage((at) => (reached(at, 'confirmed') ? at : 'confirmed')),
       pace.afterSaid,
@@ -417,6 +416,17 @@ export function Session({
         (chip) => !asked.includes(chip.id),
       );
 
+      /* The elongated prompt pairs with the first question, leaving the three
+         shorter actions together on the dock's second reserved row. */
+      if (!pieceFolded) {
+        suggestions.push({
+          id: 'more-like-this',
+          label: productDetail.moreLikeThis,
+          moreLikeThis: true,
+          onSelect: focusAsk,
+        });
+      }
+
       offered.forEach((chip) =>
         suggestions.push({
           id: chip.id,
@@ -484,6 +494,7 @@ export function Session({
               onSettled={advance('size')}
               columns={2}
               sharedId={(id) => `style-${id}`}
+              confirmationIcon={<NecklineIcon />}
             />
           )}
 
@@ -497,6 +508,7 @@ export function Session({
               onSettled={advance('pieces')}
               columns={3}
               sharedId={(id) => `size-${id}`}
+              confirmationIcon={<LengthIcon />}
             />
           )}
 
@@ -535,7 +547,7 @@ export function Session({
               aria-label="Adding"
               animate={moves.session.working.animate}
               transition={moves.session.working.transition}
-              className="mx-auto block h-10 w-10 rounded-full border-2 border-black/10 border-t-black/40"
+              className="mx-auto block h-10 w-10 shrink-0 rounded-full border-2 border-black/10 border-t-black/40"
             />
           )}
 
@@ -572,7 +584,7 @@ export function Session({
         speaking={saying}
         onSpeak={saying ? undefined : onSpeak}
         pay={
-          checkoutSettled && !paid ? (
+          checkoutSettled && stage !== 'confirmed' ? (
             <SwipeToPay label={checkout.pay} onPaid={onPaid} />
           ) : undefined
         }
@@ -584,9 +596,9 @@ export function Session({
 /**
  * How tall the dock is, watched rather than assumed.
  *
- * It changes height on its own — suggestions come and go, the pay control
- * arrives above the input — so a fixed number underneath the conversation is
- * wrong most of the time. This is measured, and the thread reserves it.
+ * It changes height on its own — suggestions come and go, and the pay control
+ * replaces the input — so a fixed number underneath the conversation is wrong
+ * most of the time. This is measured, and the thread reserves it.
  */
 function useDockClearance(dock: React.RefObject<HTMLDivElement | null>) {
   const [height, setHeight] = useState(0);
