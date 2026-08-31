@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { motion } from 'motion/react';
+import { AnimatePresence, motion } from 'motion/react';
 import { bag, styleWith } from '../../../content/journey';
 import { moves, pace } from '../../../motion/motion';
-import { GripIcon } from '../icons';
+import { ChevronDownIcon, GripIcon } from '../icons';
 import { OfferRow } from './Answer';
-import { Label, Line, Lines, Section, useAfter, useSectionReveal } from './parts';
+import { Emphasis, Label, Line, Section, useAfter, useSectionReveal } from './parts';
 import { money } from './money';
 
 /**
@@ -23,6 +23,14 @@ import { money } from './money';
  * order, then the button. Below all of it, one piece that goes with what is
  * already in there — which earns its place by naming the piece it pairs with,
  * something only a bag that knows the conversation can do.
+ *
+ * The card itself is separate from all of that, because the bag is shown more
+ * than once. It comes back inside the answer about promotions, where the whole
+ * point is the total the offer applies to.
+ *
+ * A card folds once the conversation has moved past it. What is in the bag is
+ * settled by then, and leaving the pieces open pushes the thing being said now
+ * off the screen — so the card keeps its totals and gives back the rest.
  */
 
 /** How far through the bag we are. */
@@ -30,15 +38,17 @@ type Part = 'said' | 'card' | 'pairing';
 
 export function Bag({
   innerRef,
+  folded,
   onCheckOut,
   onSettled,
 }: {
   innerRef?: React.Ref<HTMLDivElement>;
+  /** True once the conversation has moved on from the bag. */
+  folded?: boolean;
   onCheckOut: () => void;
   onSettled: () => void;
 }) {
   const [part, setPart] = useState<Part>('said');
-  const subtotal = bag.items.reduce((sum, item) => sum + item.price, 0);
 
   /* The card holds for a beat before the pairing is raised, so the bag is read
      as a bag rather than as the top half of an upsell. */
@@ -48,69 +58,107 @@ export function Bag({
     <motion.div
       ref={innerRef}
       {...moves.session.section}
-      className="flex w-full scroll-mt-[100px] flex-col items-start gap-6"
+      className="flex w-full flex-col items-start gap-6"
     >
-      {/* What landed, named. The two pieces are set in bold because they are
-          the only part of the sentence worth checking. */}
-      <Lines start onDone={() => setPart('card')}>
-        {[`${bag.confirmation.first} and ${bag.confirmation.second}${bag.confirmation.tail}`]}
-      </Lines>
+      {/* What landed, named. */}
+      <Emphasis phrases={bag.confirmation} start onDone={() => setPart('card')} />
 
-      {part !== 'said' && (
-        <motion.div
-          {...moves.session.card}
-          className="flex w-full flex-col gap-3 rounded-[var(--card-radius)] bg-[var(--card)] p-4"
-        >
-          <Row index={0}>
-            <span className="flex w-full justify-center text-black">
-              <GripIcon />
-            </span>
-          </Row>
-
-          {bag.items.map((item, index) => (
-            <Row key={item.id} index={index + 1}>
-              <div className="flex items-center gap-3">
-                <img
-                  src={item.image}
-                  alt=""
-                  draggable={false}
-                  className="h-16 w-16 rounded-[12px] object-cover"
-                />
-                <span className="flex-1 font-[var(--font-ui)] text-[14px] leading-[var(--type-said-line)] text-black">
-                  {item.name}
-                </span>
-                <span className="font-[var(--font-ui)] text-[14px] leading-[var(--type-said-line)] text-[var(--card-line-label)]">
-                  {money(item.price)}
-                </span>
-              </div>
-            </Row>
-          ))}
-
-          <Row index={3}>
-            <span className="block h-px w-full bg-black/[0.06]" />
-          </Row>
-          <Row index={4}>
-            <CardLine label={bag.lines.subtotal} value={money(subtotal)} />
-          </Row>
-          <Row index={5}>
-            <CardLine label={bag.lines.shipping} value={bag.lines.shippingValue} />
-          </Row>
-          <Row index={6}>
-            <CardLine label={bag.lines.total} value={money(subtotal)} strong />
-          </Row>
-          <Row index={7}>
-            <motion.button
-              whileTap={moves.assistant.press}
-              onClick={onCheckOut}
-              className="w-full rounded-[32px] border border-[var(--control-border)] bg-[var(--control-dark)] px-4 py-2 font-[var(--font-ui)] text-[10px] font-medium text-white"
-            >
-              {bag.checkOut}
-            </motion.button>
-          </Row>
-        </motion.div>
-      )}
+      {part !== 'said' && <BagCard folded={folded} onCheckOut={onCheckOut} />}
 
       {part === 'pairing' && <StyleWith onSettled={onSettled} />}
+    </motion.div>
+  );
+}
+
+/* ==========================================================================
+ * THE CARD
+ * ========================================================================== */
+
+export function BagCard({
+  folded,
+  onCheckOut,
+}: {
+  folded?: boolean;
+  onCheckOut: () => void;
+}) {
+  /** Set when the shopper opens a folded card back up by hand. */
+  const [reopened, setReopened] = useState(false);
+  const open = !folded || reopened;
+  const subtotal = bag.items.reduce((sum, item) => sum + item.price, 0);
+
+  return (
+    <motion.div
+      {...moves.session.card}
+      className="flex w-full flex-col gap-3 rounded-[var(--card-radius)] bg-[var(--card)] p-4"
+    >
+      <Row index={0}>
+        <motion.button
+          whileTap={moves.assistant.press}
+          onClick={() => setReopened((was) => !was)}
+          aria-label={bag.lines.subtotal}
+          className="flex w-full justify-center text-black"
+        >
+          {open ? <GripIcon /> : <span className="block rotate-180"><ChevronDownIcon /></span>}
+        </motion.button>
+      </Row>
+
+      {/* The pieces give back their room rather than fading in place. Height
+          is what is animated, never scale — a card that scales its way shut
+          drags every word in it with it. */}
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            key="pieces"
+            initial={{ height: 'auto' }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={moves.session.fold}
+            className="flex flex-col gap-3 overflow-hidden"
+          >
+            {bag.items.map((item, index) => (
+              <Row key={item.id} index={index + 1}>
+                <div className="flex items-center gap-3">
+                  <img
+                    src={item.image}
+                    alt=""
+                    draggable={false}
+                    className="h-16 w-16 rounded-[12px] object-cover"
+                  />
+                  <span className="flex-1 font-[var(--font-ui)] text-[14px] leading-[var(--type-said-line)] text-black">
+                    {item.name}
+                  </span>
+                  <span className="font-[var(--font-ui)] text-[14px] leading-[var(--type-said-line)] text-[var(--card-line-label)]">
+                    {money(item.price)}
+                  </span>
+                </div>
+              </Row>
+            ))}
+
+            <Row index={3}>
+              <span className="block h-px w-full bg-black/[0.06]" />
+            </Row>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <Row index={4}>
+        <CardLine label={bag.lines.subtotal} value={money(subtotal)} />
+      </Row>
+      <Row index={5}>
+        <CardLine label={bag.lines.shipping} value={bag.lines.shippingValue} />
+      </Row>
+      <Row index={6}>
+        <CardLine label={bag.lines.total} value={money(subtotal)} strong />
+      </Row>
+      <Row index={7}>
+        <motion.button
+          whileTap={moves.assistant.press}
+          onClick={onCheckOut}
+          className="w-full rounded-[32px] border border-[var(--control-border)] bg-[var(--control-dark)] px-4 py-2 font-[var(--font-ui)] text-[10px] font-medium text-white"
+        >
+          {bag.checkOut}
+        </motion.button>
+      </Row>
     </motion.div>
   );
 }

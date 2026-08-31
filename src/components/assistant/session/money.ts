@@ -7,3 +7,6 @@
  */
 export const money = (amount: number) =>
   `$${amount.toFixed(2)}`;
+
+/** The same, written as an amount taken off. */
+export const less = (amount: number) => `−${money(amount)}`;

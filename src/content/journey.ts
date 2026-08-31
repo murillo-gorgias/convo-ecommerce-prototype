@@ -21,6 +21,13 @@ import { asset } from './asset';
  * TYPES
  * ========================================================================== */
 
+/**
+ * A run of words inside a line, and whether it is the part that matters.
+ * A sentence built from these is typed out whole; the weight is the only
+ * thing that changes across it.
+ */
+export type Phrase = { text: string; strong?: boolean };
+
 /** An image the shopper can tap. Some carry a caption, some do not. */
 export type Tile = {
   id: string;
@@ -304,6 +311,12 @@ export type Answer = {
   question: string;
   /** The answer, one paragraph per line. */
   lines: readonly string[];
+  /**
+   * What the reviews say, read back as points before one buyer is quoted in
+   * full. Points rather than a paragraph, because this is the assistant
+   * reporting several people's experience rather than telling a story.
+   */
+  reviewSummary?: readonly string[];
   review?: Review;
   /** A last line after the review, turning the answer into a next step. */
   closing?: string;
@@ -338,7 +351,10 @@ export const answers: Answer[] = [
     question: 'Does it tarnish?',
     lines: [
       'Eventually, yes — but wearing it often actually slows that down. Polishing restores it fully.',
-      'Reviewer Priya wore hers daily for a year and expected it to go dull. It didn\'t. She takes it off for showers and wipes it with a cloth now and then, and she says it still looks like the day she got it.',
+    ],
+    reviewSummary: [
+      'Reviewer Priya wore hers daily for a year and expected it to go dull. It didn\'t.',
+      'She takes it off for showers and wipes it with a cloth now and then, and she says it still looks like the day she got it.',
     ],
     review: {
       author: 'Priya K.',
@@ -358,6 +374,9 @@ export const answers: Answer[] = [
 
 /** Marks on a review card. */
 export const reviewCopy = {
+  /** Names the block above the quoted review, so the assistant's own summary
+   *  and the buyer's own words are not read as one voice. */
+  summary: 'Review summary',
   verified: 'Verified Buyer',
   more: 'Read More',
 } as const;
@@ -384,14 +403,13 @@ export const bag = {
   /** Spoken by the shopper to put both things in at once. */
   command: 'Add necklace and care kit to cart',
 
-  /** Said as they land. The two names are emphasised where they appear. */
-  confirmation: {
-    lead: '',
-    first: 'Floating Sapphire Necklace',
-    join: ' and ',
-    second: 'Jewelry Care Kit',
-    tail: ' added to your bag.',
-  },
+  /** Said as they land. The two names are the only part worth checking. */
+  confirmation: [
+    { text: 'Floating Sapphire Necklace', strong: true },
+    { text: ' and ' },
+    { text: 'Jewelry Care Kit', strong: true },
+    { text: ' added to your bag.' },
+  ] satisfies Phrase[],
 
   lines: {
     subtotal: 'Bag Subtotal',
@@ -437,6 +455,32 @@ export const styleWith = {
 } as const;
 
 /* ==========================================================================
+ * THE PROMOTION
+ *
+ * Asked out loud with the bag in front of them, which is where the question
+ * actually gets asked. The assistant names the code and says where it lands,
+ * instead of pointing at a field to hunt for.
+ * ========================================================================== */
+
+/** The code, and what it takes off. Applied at checkout, not in the bag. */
+export const promotion = {
+  code: 'SUMMER15',
+  /** Fifteen per cent off the bag. */
+  rate: 0.15,
+} as const;
+
+/**
+ * The turn itself. The bag is shown again inside the answer rather than
+ * referred to, because the offer is about what is in it — a total the shopper
+ * has to scroll back for is a total they will not check.
+ */
+export const promo = {
+  question: 'Are there any promotions going on?',
+  lead: `Yes — ${promotion.code} is running, 15% off for orders $150 or above. I'll apply it at checkout.`,
+  close: 'Ready to check out?',
+} as const;
+
+/* ==========================================================================
  * CHECKOUT
  *
  * Everything is already known, so nothing is asked. The assistant states the
@@ -447,18 +491,23 @@ export const styleWith = {
 export const checkout = {
   command: 'Check out to my Brooklyn address',
 
-  /** Said back, with the two facts worth checking set in bold. */
-  summary: {
-    lead: 'Going to your ',
-    place: 'Brooklyn',
-    middle: ' address, arriving Thursday with free shipping. Paying with the ',
-    card: 'Visa ending 4419',
-    tail: '.',
-  },
+  /** Said back. Where it goes, when it lands, what came off and what pays. */
+  summary: [
+    { text: 'Going to your ' },
+    { text: 'Brooklyn address', strong: true },
+    { text: ', arriving ' },
+    { text: 'Thursday', strong: true },
+    { text: ' with free shipping. ' },
+    { text: promotion.code, strong: true },
+    { text: ' is applied, 15% off. Paying with the ' },
+    { text: 'Visa ending 4419', strong: true },
+    { text: '.' },
+  ] satisfies Phrase[],
 
   lines: {
     total: 'Total',
     items: '2 items',
+    discount: `${promotion.code} 15%`,
     shipping: 'Shipping',
     shippingValue: 'Free',
     grandTotal: 'Total',

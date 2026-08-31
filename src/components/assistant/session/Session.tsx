@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import {
   answers,
@@ -9,11 +9,12 @@ import {
   opening,
   perfectFit,
   productDetail,
+  promo,
   sizing,
   styleCheck,
   vibeCheck,
 } from '../../../content/journey';
-import { moves, pace } from '../../../motion/motion';
+import { moves, pace, prefersReducedMotion } from '../../../motion/motion';
 import { Dock, SessionGround, SessionHeader, type Suggestion } from './Chrome';
 import { Line, Said, useAfter } from './parts';
 import { VibeCheck } from './VibeCheck';
@@ -21,6 +22,7 @@ import { PickOne } from './PickOne';
 import { PerfectFit } from './PerfectFit';
 import { Answer } from './Answer';
 import { Bag } from './Bag';
+import { Promo } from './Promo';
 import { Checkout, Confirmation } from './Checkout';
 import { SwipeToPay } from './SwipeToPay';
 
@@ -120,6 +122,9 @@ const answeredBefore = (checkpoint: Checkpoint) => {
   return {
     questionsDone,
     bagged,
+    /* By checkout the promotion has been asked about and answered, so the
+       thread reads the way it would after a full run. */
+    promoDone: checkpoint === 'checkout',
     /* At the bag and beyond, a piece has been opened and asked about, so it
        sits folded with the conversation about it above the bag. */
     asked: bagged ? answers.map((answer) => answer.id) : [],
@@ -185,22 +190,33 @@ export function Session({
   const [bagCount, setBagCount] = useState(from.bagged ? bag.items.length : 0);
   const [adding, setAdding] = useState(false);
   const [bagSettled, setBagSettled] = useState(false);
+
+  /** The promotion: whether it has been asked about, and whether the answer
+   *  has finished. Checking out is not offered to the microphone until it has. */
+  const [promoAsked, setPromoAsked] = useState(from.promoDone);
+  const [promoSettled, setPromoSettled] = useState(from.promoDone);
+
   const [checkoutSettled, setCheckoutSettled] = useState(false);
   const [paid, setPaid] = useState(false);
 
   /** What is currently being said out loud into the input, if anything. */
   const [saying, setSaying] = useState<string>();
 
-  /* --- Where each section sits, so a new one can be scrolled to ----------- */
+  /* --- The thread, and the two things that decide where it sits ----------- */
   const thread = useRef<HTMLDivElement>(null);
-  const vibeRef = useRef<HTMLDivElement>(null);
-  const styleRef = useRef<HTMLDivElement>(null);
-  const sizeRef = useRef<HTMLDivElement>(null);
-  const piecesRef = useRef<HTMLDivElement>(null);
-  const bagRef = useRef<HTMLDivElement>(null);
-  const checkoutRef = useRef<HTMLDivElement>(null);
-  const confirmRef = useRef<HTMLDivElement>(null);
+  const column = useRef<HTMLDivElement>(null);
+  const dockRef = useRef<HTMLDivElement>(null);
   const askRef = useRef<HTMLInputElement>(null);
+
+  /** How tall the dock is right now. The thread reserves exactly this much
+   *  below the conversation, so nothing can ever land behind it. */
+  const clearance = useDockClearance(dockRef);
+
+  /* The thread stays at its own bottom as it grows, which is the only scroll
+     rule in the session. Sections used to scroll themselves to the top as
+     they arrived, and a part landing a beat later — a card, a review, a
+     confirmation — ended up under the dock with nothing to bring it back. */
+  useFollowBottom(thread, column, clearance);
 
   /* --- The opening ------------------------------------------------------- */
 
@@ -216,15 +232,6 @@ export function Session({
   /* --- One section settles, the next takes its turn ----------------------- */
   const advance = (to: Stage) => () =>
     window.setTimeout(() => setStage((at) => (reached(at, to) ? at : to)), pace.betweenSections);
-
-  /* --- A new section arrives, and the thread follows it -------------------- */
-  useScrollTo(vibeRef, reached(stage, 'vibe'));
-  useScrollTo(styleRef, reached(stage, 'style'));
-  useScrollTo(sizeRef, reached(stage, 'size'));
-  useScrollTo(piecesRef, reached(stage, 'pieces'));
-  useScrollTo(bagRef, reached(stage, 'bag'));
-  useScrollTo(checkoutRef, reached(stage, 'checkout'));
-  useScrollTo(confirmRef, reached(stage, 'confirmed'));
 
   /* --- Answering the questions -------------------------------------------- */
 
@@ -391,8 +398,11 @@ export function Session({
           onSelect: focusAsk,
         }),
       );
-      /* Checking out is said, not pressed. */
-      onSpeak = () => speak(checkout.command, goToCheckout);
+      /* Two things are said here, in order. First the question about a
+         promotion, and only once it has been answered, checking out. Both go
+         to the microphone rather than to a chip, because both are spoken. */
+      if (!promoAsked) onSpeak = () => speak(promo.question, () => setPromoAsked(true));
+      else if (promoSettled) onSpeak = () => speak(checkout.command, goToCheckout);
     }
   } else if (reached(stage, 'pieces') && answered) {
     if (!opened && gridReady) {
@@ -445,7 +455,11 @@ export function Session({
             its own arrival, and a layout animation here re-measured the whole
             column on every keystroke — which is what made everything above a
             line being typed drift about. */}
-        <div className="flex flex-col items-start gap-8 px-4 pb-[300px] pt-[104px]">
+        <div
+          ref={column}
+          className="flex flex-col items-start gap-8 px-4 pt-[104px]"
+          style={{ paddingBottom: clearance + 24 }}
+        >
           <Said>{opening.query}</Said>
           <Line start={speaking} onDone={() => setGreeted(true)}>
             {opening.greeting}
@@ -453,7 +467,6 @@ export function Session({
 
           {reached(stage, 'vibe') && (
             <VibeCheck
-              innerRef={vibeRef}
               picks={vibePicks}
               phase={vibePhase}
               onToggle={toggleVibe}
@@ -463,7 +476,6 @@ export function Session({
 
           {reached(stage, 'style') && (
             <PickOne
-              innerRef={styleRef}
               section={styleCheck}
               tiles={styleCheck.tiles}
               picked={stylePick}
@@ -477,7 +489,6 @@ export function Session({
 
           {reached(stage, 'size') && (
             <PickOne
-              innerRef={sizeRef}
               section={sizing}
               tiles={sizing.tiles}
               picked={sizePick}
@@ -491,7 +502,6 @@ export function Session({
 
           {reached(stage, 'pieces') && (
             <PerfectFit
-              innerRef={piecesRef}
               opened={opened}
               choosing={choosing}
               folded={pieceFolded}
@@ -531,21 +541,31 @@ export function Session({
 
           {reached(stage, 'bag') && (
             <Bag
-              innerRef={bagRef}
+              folded={promoAsked}
               onCheckOut={goToCheckout}
               onSettled={() => setBagSettled(true)}
             />
           )}
 
-          {reached(stage, 'checkout') && (
-            <Checkout innerRef={checkoutRef} onSettled={() => setCheckoutSettled(true)} />
+          {/* The promotion, asked with the bag in front of them. */}
+          {promoAsked && (
+            <Promo
+              folded={reached(stage, 'checkout')}
+              onCheckOut={goToCheckout}
+              onSettled={() => setPromoSettled(true)}
+            />
           )}
 
-          {reached(stage, 'confirmed') && <Confirmation innerRef={confirmRef} />}
+          {reached(stage, 'checkout') && (
+            <Checkout onSettled={() => setCheckoutSettled(true)} />
+          )}
+
+          {reached(stage, 'confirmed') && <Confirmation />}
         </div>
       </div>
 
       <Dock
+        innerRef={dockRef}
         suggestions={suggestions}
         inputRef={askRef}
         bagCount={bagCount}
@@ -562,16 +582,74 @@ export function Session({
 }
 
 /**
- * Brings a section into view once it exists. Waits past the section's own
- * entrance so the scroll lands where the section finishes, not where it
- * started.
+ * How tall the dock is, watched rather than assumed.
+ *
+ * It changes height on its own — suggestions come and go, the pay control
+ * arrives above the input — so a fixed number underneath the conversation is
+ * wrong most of the time. This is measured, and the thread reserves it.
  */
-function useScrollTo(ref: React.RefObject<HTMLDivElement | null>, visible: boolean) {
+function useDockClearance(dock: React.RefObject<HTMLDivElement | null>) {
+  const [height, setHeight] = useState(0);
+
+  useLayoutEffect(() => {
+    const el = dock.current;
+    if (!el) return;
+
+    /* `offsetHeight`, not a bounding rect. The dock animates its own height
+       change with a transform, and a rect measured mid-animation reports the
+       height it is passing through rather than the one it is settling on. */
+    const measure = () => setHeight(el.offsetHeight);
+    measure();
+
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [dock]);
+
+  return height;
+}
+
+/**
+ * Keeps the thread at its own bottom, so whatever just arrived is what is on
+ * screen.
+ *
+ * Everything in this session arrives in parts — a line, then a card, then the
+ * rows inside it — and each part makes the conversation taller. Watching the
+ * column's height rather than any one section means every one of those
+ * moments brings the scroll with it, including the ones that used to land
+ * quietly underneath the dock.
+ *
+ * The scroll is always smooth and always retargeted rather than restarted, so
+ * a run of parts arriving close together reads as one continuous movement.
+ */
+function useFollowBottom(
+  thread: React.RefObject<HTMLDivElement | null>,
+  column: React.RefObject<HTMLDivElement | null>,
+  clearance: number,
+) {
   useEffect(() => {
-    if (!visible) return;
-    const timer = window.setTimeout(() => {
-      ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 260);
-    return () => window.clearTimeout(timer);
-  }, [ref, visible]);
+    const view = thread.current;
+    const content = column.current;
+    if (!view || !content) return;
+
+    let frame = 0;
+    const follow = () => {
+      window.cancelAnimationFrame(frame);
+      frame = window.requestAnimationFrame(() => {
+        view.scrollTo({
+          top: view.scrollHeight,
+          behavior: prefersReducedMotion() ? 'auto' : 'smooth',
+        });
+      });
+    };
+
+    follow();
+    const observer = new ResizeObserver(follow);
+    observer.observe(content);
+
+    return () => {
+      observer.disconnect();
+      window.cancelAnimationFrame(frame);
+    };
+  }, [thread, column, clearance]);
 }

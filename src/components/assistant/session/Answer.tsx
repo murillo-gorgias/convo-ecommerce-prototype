@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { motion } from 'motion/react';
 import {
   offerCopy,
@@ -9,7 +9,7 @@ import {
 } from '../../../content/journey';
 import { moves, pace } from '../../../motion/motion';
 import { ChevronDownIcon, HeartIcon, StarIcon, VerifiedIcon } from '../icons';
-import { Lines, Said, useAfter } from './parts';
+import { Bullets, Label, Lines, Said, useAfter } from './parts';
 
 /**
  * ============================================================================
@@ -45,7 +45,9 @@ import { Lines, Said, useAfter } from './parts';
  */
 
 /** How far through an answer we are. Each part waits for the one before it. */
-type Part = 'question' | 'summary' | 'review' | 'closing' | 'offer' | 'done';
+type Part = 'question' | 'summary' | 'points' | 'review' | 'closing' | 'offer' | 'done';
+
+const PARTS: Part[] = ['question', 'summary', 'points', 'review', 'closing', 'offer', 'done'];
 
 export function Answer({
   answer,
@@ -58,7 +60,6 @@ export function Answer({
   onSettled?: () => void;
 }) {
   const [part, setPart] = useState<Part>('question');
-  const held = useRef<HTMLDivElement>(null);
 
   /* The question lands, and the assistant takes the same beat a person would
      take before answering it. */
@@ -66,6 +67,7 @@ export function Answer({
 
   /* The parts that follow the summary, each after the one before it. Anything
      this answer does not have is stepped straight past. */
+  useAfter(pace.betweenParts, part === 'points' && !answer.reviewSummary, () => setPart('review'));
   useAfter(pace.betweenParts, part === 'review' && !answer.review, () => setPart('closing'));
   useAfter(pace.betweenParts, part === 'closing' && !answer.closing, () => setPart('offer'));
   useAfter(pace.betweenParts, part === 'offer' && !answer.offer, () => setPart('done'));
@@ -78,35 +80,32 @@ export function Answer({
 
   useAfter(pace.afterSpeech, part === 'done', () => onSettled?.());
 
-  /* The thread follows the question up, so the answer types out where the
-     shopper is already looking rather than below the fold. */
-  useEffect(() => {
-    const timer = window.setTimeout(
-      () => held.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
-      160,
-    );
-    return () => window.clearTimeout(timer);
-  }, []);
-
-  const reached = (at: Part) =>
-    ['question', 'summary', 'review', 'closing', 'offer', 'done'].indexOf(part) >=
-    ['question', 'summary', 'review', 'closing', 'offer', 'done'].indexOf(at);
+  const reached = (at: Part) => PARTS.indexOf(part) >= PARTS.indexOf(at);
 
   return (
     <motion.div
-      ref={(node) => {
-        held.current = node;
-        if (typeof innerRef === 'function') innerRef(node);
-        else if (innerRef) (innerRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
-      }}
+      ref={innerRef}
       {...moves.session.section}
-      className="flex w-full scroll-mt-[100px] flex-col items-start gap-4"
+      className="flex w-full flex-col items-start gap-4"
     >
       <Said>{answer.question}</Said>
 
-      <Lines start={reached('summary')} onDone={() => setPart('review')}>
+      <Lines start={reached('summary')} onDone={() => setPart('points')}>
         {answer.lines}
       </Lines>
+
+      {/* What the reviews say, labelled and read back as points. The label
+          belongs to these points, not to the card below them — the points are
+          the assistant's reading of the reviews, and the card is one buyer
+          speaking for themselves. */}
+      {reached('points') && answer.reviewSummary && (
+        <div className="flex w-full flex-col gap-2">
+          <Label>{reviewCopy.summary}</Label>
+          <Bullets start onDone={() => setPart('review')}>
+            {answer.reviewSummary}
+          </Bullets>
+        </div>
+      )}
 
       {reached('review') && answer.review && <ReviewCard review={answer.review} />}
 

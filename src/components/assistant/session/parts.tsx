@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { duration, moves, pace, prefersReducedMotion, stagger, typingSpeed } from '../../../motion/motion';
-import type { Tile } from '../../../content/journey';
+import type { Phrase, Tile } from '../../../content/journey';
 import { CheckIcon, HeartIcon, StackIcon } from '../icons';
 
 /**
@@ -159,6 +159,64 @@ export function Line({
 }
 
 /**
+ * A line with the facts worth checking set in bold, typed out as one sentence.
+ *
+ * The whole line types at one speed regardless of where the bold falls — the
+ * emphasis is in the weight, never in the pacing. Underneath sits the finished
+ * sentence at zero opacity, so the block holds its height from the first
+ * character exactly as a plain line does.
+ */
+export function Emphasis({
+  phrases,
+  start = true,
+  onDone,
+}: {
+  phrases: readonly Phrase[];
+  start?: boolean;
+  onDone?: () => void;
+}) {
+  const full = phrases.map((phrase) => phrase.text).join('');
+  const { shown, typing } = useTypewriter(full, start, onDone);
+
+  /* Where each phrase begins in the finished sentence, so the words typed so
+     far can be handed back to the phrase they belong to. */
+  let at = 0;
+  const spans = phrases.map((phrase) => {
+    const from = at;
+    at += phrase.text.length;
+    return { ...phrase, said: shown.slice(from, at) };
+  });
+
+  return (
+    <motion.p
+      {...moves.session.line}
+      className="relative w-full font-[var(--font-ui)] text-[14px] leading-[var(--type-said-line)] text-black"
+    >
+      <span aria-hidden className="invisible">
+        {phrases.map((phrase, index) => (
+          <span key={index} className={phrase.strong ? 'font-semibold' : undefined}>
+            {phrase.text}
+          </span>
+        ))}
+      </span>
+      <span className="absolute inset-0">
+        {spans.map((phrase, index) => (
+          <span key={index} className={phrase.strong ? 'font-semibold' : undefined}>
+            {phrase.said}
+          </span>
+        ))}
+        {typing && (
+          <motion.span
+            {...moves.session.caret}
+            className="ml-[1px] inline-block h-[13px] w-[1.5px] translate-y-[2px] bg-black/70"
+          />
+        )}
+      </span>
+    </motion.p>
+  );
+}
+
+/**
  * Several paragraphs, said one after another.
  *
  * The assistant does not deliver a whole answer at once. Each paragraph types
@@ -207,6 +265,46 @@ export function Lines({
   );
 }
 
+/**
+ * Points, read out one after another.
+ *
+ * Same pacing as `Lines` — a point is not begun until the one above it has
+ * been made. Points are for a set of separate findings; a paragraph is for
+ * one thought. Reporting what several buyers said is the first kind.
+ */
+export function Bullets({
+  children,
+  start = true,
+  onDone,
+}: {
+  children: readonly string[];
+  start?: boolean;
+  onDone?: () => void;
+}) {
+  const [said, setSaid] = useState(0);
+
+  return (
+    <ul className="flex w-full list-disc flex-col gap-2 pl-5 marker:text-black">
+      {children.map((text, index) => (
+        <li key={index} className="w-full">
+          <Line
+            start={start && index <= said}
+            onDone={() => {
+              if (index < children.length - 1) {
+                window.setTimeout(() => setSaid(index + 1), pace.beforeSpeech);
+              } else {
+                onDone?.();
+              }
+            }}
+          >
+            {text}
+          </Line>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 /** The small caps heading that opens a section. */
 export function Label({ children }: { children: string }) {
   return (
@@ -234,7 +332,7 @@ export function Section({
     <motion.section
       ref={innerRef}
       {...moves.session.section}
-      className="flex w-full scroll-mt-[100px] flex-col items-start gap-3"
+      className="flex w-full flex-col items-start gap-3"
     >
       {children}
     </motion.section>
@@ -269,10 +367,9 @@ export function useSectionReveal() {
 /**
  * Brings in whatever a question is asking for, once it has been asked.
  *
- * It also nudges its section back to the top of the thread as it arrives. The
- * thread already scrolled to this section when the label appeared, but at that
- * point the section was two lines tall and there was nothing below it to
- * scroll against. Now that it has filled out, the scroll can actually land.
+ * It does not scroll. Nothing in a section does: the thread follows its own
+ * bottom as it grows, in one place, so two parts arriving close together
+ * cannot fight each other for the scroll position.
  */
 export function Body({
   show,
@@ -284,17 +381,8 @@ export function Body({
   /** Called once the body has arrived and the section has nothing left to say. */
   onSettled?: () => void;
 }) {
-  const held = useRef<HTMLDivElement>(null);
   const settle = useRef(onSettled);
   settle.current = onSettled;
-
-  useEffect(() => {
-    if (!show) return;
-    const timer = window.setTimeout(() => {
-      held.current?.closest('section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 120);
-    return () => window.clearTimeout(timer);
-  }, [show]);
 
   useEffect(() => {
     if (!show) return;
@@ -305,7 +393,7 @@ export function Body({
   return (
     <AnimatePresence initial={false}>
       {show && (
-        <motion.div ref={held} layout {...moves.session.body} className="w-full">
+        <motion.div layout {...moves.session.body} className="w-full">
           {children}
         </motion.div>
       )}

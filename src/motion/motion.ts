@@ -294,13 +294,31 @@ export const moves = {
       transition: { duration: duration.quick, ease: easing.even },
     },
 
-    /** The console's contents arriving after the container has opened. */
+    /**
+     * The console's contents arriving after the container has opened.
+     *
+     * Leaving is given its own, faster transition. One set of contents waits
+     * for the last to go before it arrives — otherwise both sit in the sheet
+     * at once and the sheet is briefly as tall as the two of them, which is
+     * the jump up and back that made opening it feel broken.
+     */
     consoleContent: {
       initial: { opacity: 0, y: 12 },
       animate: { opacity: 1, y: 0 },
-      exit: { opacity: 0, y: 6 },
-      transition: { duration: duration.base, ease: easing.refined, delay: 0.12 },
+      exit: { opacity: 0, y: 6, transition: { duration: duration.quick, ease: easing.exit } },
+      transition: { duration: duration.base, ease: easing.refined, delay: 0.06 },
     },
+
+    /**
+     * The sign-in offer fading in.
+     *
+     * It is not mounted late — it is there from the first frame, holding its
+     * room, exactly as a line holds the height of the sentence it is about to
+     * type. The sheet settles once, when the sign-in replaces the console,
+     * instead of shrinking to fit the question and growing again for the
+     * answer.
+     */
+    offerReveal: { duration: duration.base, ease: easing.refined },
 
     /** The soft dark wash over the store while the console is open. */
     scrim: {

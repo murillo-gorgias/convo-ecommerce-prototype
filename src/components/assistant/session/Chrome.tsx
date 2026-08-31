@@ -102,6 +102,7 @@ export type Suggestion = {
 };
 
 export function Dock({
+  innerRef,
   suggestions,
   inputRef,
   bagCount = 0,
@@ -109,6 +110,8 @@ export function Dock({
   speaking,
   onSpeak,
 }: {
+  /** The thread measures the dock, so nothing ever lands underneath it. */
+  innerRef?: React.Ref<HTMLDivElement>;
   suggestions: Suggestion[];
   inputRef?: React.Ref<HTMLInputElement>;
   /** How many things are in the bag. The button only exists once it is not empty. */
@@ -125,6 +128,7 @@ export function Dock({
 }) {
   return (
     <motion.div
+      ref={innerRef}
       layout
       transition={moves.session.fold}
       className="absolute inset-x-0 bottom-0 z-30 flex flex-col items-center gap-4 rounded-t-[16px] border-t-[0.5px] border-[var(--dock-border)] bg-[var(--dock-bg)] px-4 pb-7 pt-4 shadow-[0_-4px_6px_rgba(0,0,0,0.06)] backdrop-blur-[10px]"

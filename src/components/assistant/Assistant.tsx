@@ -137,14 +137,32 @@ export function Assistant({
         )}
       </AnimatePresence>
 
-      {/* The assistant itself. */}
+      {/* The assistant itself.
+          The rise it makes when the page first loads happens on the wrapper,
+          and the morph between shapes happens on the element inside it. Both
+          on one element fight each other: a morph is measured, a transform is
+          applied on top of that measurement, and the shape jumps as it opens. */}
+      <motion.div
+        initial={moves.assistant.firstAppearance.initial}
+        animate={moves.assistant.firstAppearance.animate}
+        transition={moves.assistant.firstAppearance.transition}
+        className="pointer-events-none absolute inset-0 z-50"
+      >
       <motion.div
         layout
         transition={moves.assistant.shapeChange}
-        initial={moves.assistant.firstAppearance.initial}
-        animate={moves.assistant.firstAppearance.animate}
-        className={`absolute z-50 ${containerClass(shape)}`}
+        className={`pointer-events-auto absolute ${containerClass(shape)}`}
       >
+        {/* Every stage's contents sit in the same grid cell, stacked rather
+            than listed. While one is fading out and the next is fading in the
+            sheet is as tall as the taller of the two, never as tall as both —
+            which is the jump up and back that made opening it feel broken.
+
+            The single row is what keeps the session working. As a sheet this
+            has no height of its own and the row takes the height of whatever
+            is in it; full screen it has one, and the row hands that height
+            down so the conversation can scroll inside it. */}
+        <div className="grid h-full grid-rows-1 [&>*]:col-start-1 [&>*]:row-start-1 [&>*]:min-h-0">
         <AnimatePresence initial={false}>
           {shape === 'bar' && (
             <BarContents key="bar" onOpen={openConsole} onVoice={startListening} />
@@ -174,6 +192,8 @@ export function Assistant({
             <Session key="session" onCollapse={() => setShape('signin')} onClose={closeAll} />
           )}
         </AnimatePresence>
+        </div>
+      </motion.div>
       </motion.div>
     </>
   );

@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
-import { bag, checkout, confirmation } from '../../../content/journey';
+import { bag, checkout, confirmation, promotion } from '../../../content/journey';
 import { moves, pace } from '../../../motion/motion';
 import { ChevronDownIcon, VerifiedIcon } from '../icons';
-import { Lines, Said, useAfter } from './parts';
-import { money } from './money';
+import { Emphasis, Lines, Said, useAfter } from './parts';
+import { less, money } from './money';
 
 /**
  * ============================================================================
@@ -30,7 +30,7 @@ export function Checkout({
 }) {
   /** said → the summary is being spoken · card → the totals have arrived. */
   const [part, setPart] = useState<'said' | 'summary' | 'card'>('said');
-  const total = bag.items.reduce((sum, item) => sum + item.price, 0);
+  const { subtotal, discount, total } = paid();
 
   useAfter(pace.afterSaid, part === 'said', () => setPart('summary'));
   useAfter(pace.afterSpeech, part === 'card', onSettled);
@@ -39,7 +39,7 @@ export function Checkout({
     <motion.div
       ref={innerRef}
       {...moves.session.section}
-      className="flex w-full scroll-mt-[100px] flex-col items-start gap-3"
+      className="flex w-full flex-col items-start gap-3"
     >
       <Said>{checkout.command}</Said>
 
@@ -47,11 +47,7 @@ export function Checkout({
           at the same moment turns the sentence into a caption for it, when the
           sentence is the part that answers the question. */}
       {part !== 'said' && (
-        <Lines start onDone={() => setPart('card')}>
-          {[
-            `${checkout.summary.lead}${checkout.summary.place}${checkout.summary.middle}${checkout.summary.card}${checkout.summary.tail}`,
-          ]}
-        </Lines>
+        <Emphasis phrases={checkout.summary} start onDone={() => setPart('card')} />
       )}
 
       {part === 'card' && (
@@ -89,14 +85,27 @@ export function Checkout({
 
               <button className="flex items-center gap-[2px] text-black">
                 <span className="font-[var(--font-ui)] text-[16px] font-semibold leading-[var(--type-said-line)]">
-                  {money(total)}
+                  {money(subtotal)}
                 </span>
                 <ChevronDownIcon size={20} />
               </button>
             </div>
             </Row>
 
+            {/* The code the assistant promised, doing what it said it would.
+                A discount named but not subtracted reads as a bug. */}
             <Row index={1}>
+              <div className="flex w-full items-start justify-between">
+                <span className="font-[var(--font-ui)] text-[12px] font-medium leading-[var(--type-said-line)] text-[var(--card-line-label)]">
+                  {checkout.lines.discount}
+                </span>
+                <span className="font-[var(--font-ui)] text-[14px] leading-[var(--type-said-line)] text-[var(--positive)]">
+                  {less(discount)}
+                </span>
+              </div>
+            </Row>
+
+            <Row index={2}>
               <div className="flex w-full items-start justify-between">
                 <span className="font-[var(--font-ui)] text-[12px] font-medium leading-[var(--type-said-line)] text-[var(--card-line-label)]">
                   {checkout.lines.shipping}
@@ -107,7 +116,7 @@ export function Checkout({
               </div>
             </Row>
 
-            <Row index={2}>
+            <Row index={3}>
               <div className="flex w-full items-start justify-between">
                 <span className="font-[var(--font-ui)] text-[length:var(--type-label-size)] font-semibold uppercase leading-[var(--type-said-line)] tracking-[var(--type-label-tracking)] text-black">
                   {checkout.lines.grandTotal}
@@ -124,6 +133,17 @@ export function Checkout({
   );
 }
 
+/**
+ * What is actually being paid: the bag, the code the assistant applied on the
+ * way in, and what is left. One place, so the receipt after the swipe can
+ * never disagree with the summary before it.
+ */
+function paid() {
+  const subtotal = bag.items.reduce((sum, item) => sum + item.price, 0);
+  const discount = subtotal * promotion.rate;
+  return { subtotal, discount, total: subtotal - discount };
+}
+
 /* ==========================================================================
  * AFTER IT IS PAID
  * ========================================================================== */
@@ -134,7 +154,7 @@ export function Confirmation({
   innerRef?: React.Ref<HTMLDivElement>;
 }) {
   const [part, setPart] = useState<'thanks' | 'said' | 'card'>('thanks');
-  const total = bag.items.reduce((sum, item) => sum + item.price, 0);
+  const { total } = paid();
 
   useAfter(pace.betweenParts, part === 'thanks', () => setPart('said'));
 
@@ -142,7 +162,7 @@ export function Confirmation({
     <motion.div
       ref={innerRef}
       {...moves.session.section}
-      className="flex w-full scroll-mt-[100px] flex-col items-start gap-3"
+      className="flex w-full flex-col items-start gap-3"
     >
       <div className="flex w-full items-center gap-1">
         <motion.span {...moves.session.tick} className="text-black">

@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { opening, shopper } from '../../content/journey';
+import { dock, opening, shopper } from '../../content/journey';
 import { assistantCopy } from '../../content/assistant';
 import { moves, pace } from '../../motion/motion';
-import { CloseIcon, ExpandIcon, UserCheckIcon } from './icons';
-import { Body, Line, Said, useAfter } from './session/parts';
+import { CloseIcon, ExpandIcon, MicIcon } from './icons';
+import { Line, Said, useAfter } from './session/parts';
 
 /**
  * ============================================================================
@@ -16,9 +16,13 @@ import { Body, Line, Said, useAfter } from './session/parts';
  * both ways out are one tap away — declining costs the shopper nothing except
  * the personalisation.
  *
+ * The offer is made where every other next step in this product is made: the
+ * row of suggestions above the input. Continuing as yourself is the dark one,
+ * and it carries your own face so it is you being offered, not an account.
+ *
  * Two beats live here. The offer, and then the moment the account opens: the
- * card holding the shopper's name collapses into a single line, light travels
- * across the words, and a small mark opens, turns and closes again beside it.
+ * row of suggestions gives way to a single line, light travels across the
+ * words, and a small mark opens, turns and closes again beside it.
  * That second beat is the only place in the session where the assistant makes
  * the shopper wait, so it is the one place worth decorating — and it is held
  * for `pace.beforeExpanding` before the session takes the screen, so the
@@ -75,7 +79,11 @@ export function SignIn({
         {opening.invitation}
       </Line>
 
-      <Body show={offering}>
+      <motion.div
+        animate={{ opacity: offering ? 1 : 0 }}
+        transition={moves.assistant.offerReveal}
+        className={offering ? undefined : 'pointer-events-none'}
+      >
         <AnimatePresence mode="wait" initial={false}>
           {opened ? (
             <Opening key="opening" />
@@ -83,7 +91,22 @@ export function SignIn({
             <Offer key="offer" onContinue={onContinue} onDecline={onDecline} />
           )}
         </AnimatePresence>
-      </Body>
+      </motion.div>
+
+      {/* Asking something instead is always available and never required, so
+          the field stays under the offer rather than replacing it. */}
+      <motion.div
+        layout
+        className="flex h-10 w-full items-center justify-between gap-3 rounded-[40px] border border-[var(--field-border)] bg-[var(--field-bg)] px-4 shadow-[0_4px_4px_rgba(0,0,0,0.04)]"
+      >
+        <input
+          placeholder={dock.placeholder}
+          className="h-full min-w-0 flex-1 bg-transparent font-[var(--font-ui)] text-[12px] text-black outline-none placeholder:text-black/60"
+        />
+        <span className="shrink-0 text-[var(--ink-soft)]">
+          <MicIcon size={16} />
+        </span>
+      </motion.div>
     </motion.div>
   );
 }
@@ -94,51 +117,43 @@ export function SignIn({
 
 function Offer({ onContinue, onDecline }: { onContinue: () => void; onDecline: () => void }) {
   return (
-    <motion.div layout {...moves.assistant.contentSwap} className="flex flex-col gap-4">
-      {/* Who the store thinks this is */}
-      <motion.div
-        layout
-        transition={moves.session.fold}
-        className="flex items-center gap-5 rounded-[24px] border border-[var(--tile-border)] bg-white/40 p-5"
+    <motion.div
+      layout
+      {...moves.assistant.contentSwap}
+      className="flex flex-wrap items-center justify-end gap-1"
+    >
+      {/* Continuing as yourself is the one that moves this on, so it is the
+          dark one — the same rule the session's suggestions follow. */}
+      <motion.button
+        {...moves.session.chip}
+        whileTap={moves.assistant.press}
+        onClick={onContinue}
+        className="flex shrink-0 items-center gap-2 whitespace-nowrap rounded-[32px] bg-[var(--control-dark)] px-4 py-3 text-white"
       >
         <motion.img
           layoutId="shopper-avatar"
           transition={moves.session.thumbTravel}
           src={shopper.avatar}
           alt=""
-          className="h-[57px] w-[57px] shrink-0 rounded-[16px] object-cover"
+          className="h-[15px] w-[15px] shrink-0 rounded-full object-cover"
         />
-        <div className="flex flex-col gap-[9px]">
-          <p className="font-[var(--font-ui)] text-[14px] font-semibold leading-[17px] text-black">
-            {shopper.fullName}
-          </p>
-          <motion.button
-            whileTap={moves.assistant.press}
-            onClick={onContinue}
-            className="flex h-[31px] items-center gap-[8px] self-start rounded-[999px] bg-[var(--ink)] pl-4 pr-5 text-white"
-          >
-            <UserCheckIcon size={12} />
-            <span className="font-[var(--font-ui)] text-[12px] font-medium leading-[15px]">
-              {opening.actions.continueAs}
-            </span>
-          </motion.button>
-        </div>
-      </motion.div>
+        <span className="font-[var(--font-ui)] text-[12px] font-medium leading-[15px]">
+          {opening.actions.continueAs}
+        </span>
+      </motion.button>
 
-      {/* Both ways out */}
-      <div className="flex items-center justify-end gap-1">
-        {[opening.actions.otherAccount, opening.actions.decline].map((label) => (
-          <motion.button
-            key={label}
-            {...moves.session.chip}
-            whileTap={moves.assistant.press}
-            onClick={onDecline}
-            className="rounded-[32px] border border-[var(--chip-border)] bg-[var(--chip)] px-3 py-3 font-[var(--font-ui)] text-[12px] font-medium leading-[15px] text-black"
-          >
-            {label}
-          </motion.button>
-        ))}
-      </div>
+      {/* Both ways out, weighted the same as each other. */}
+      {[opening.actions.otherAccount, opening.actions.decline].map((label) => (
+        <motion.button
+          key={label}
+          {...moves.session.chip}
+          whileTap={moves.assistant.press}
+          onClick={onDecline}
+          className="shrink-0 whitespace-nowrap rounded-[32px] border border-[var(--chip-border)] bg-[var(--chip)] px-3 py-3 font-[var(--font-ui)] text-[12px] font-medium leading-[15px] text-black"
+        >
+          {label}
+        </motion.button>
+      ))}
     </motion.div>
   );
 }
