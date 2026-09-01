@@ -16,7 +16,7 @@ import {
 } from '../../../content/journey';
 import { moves, pace, prefersReducedMotion } from '../../../motion/motion';
 import { Dock, SessionGround, SessionHeader, type Suggestion } from './Chrome';
-import { Line, Said, useAfter } from './parts';
+import { AlreadyHappened, Line, Said, useAfter } from './parts';
 import { VibeCheck } from './VibeCheck';
 import { PickOne } from './PickOne';
 import { PerfectFit } from './PerfectFit';
@@ -132,6 +132,39 @@ const answeredBefore = (checkpoint: Checkpoint) => {
   };
 };
 
+/**
+ * Whether a section had already finished before the checkpoint began.
+ *
+ * The section a checkpoint lands on is the one being worked on, so it plays at
+ * its own pace. Everything above it is history: it arrives finished, in one
+ * frame. Without this, landing on the bag sets four sections typing themselves
+ * out at once, each one growing the thread under the part being looked at, and
+ * the conversation shifts about for six seconds while none of it can be read.
+ */
+const alreadyHappened = (start: Checkpoint, at: Stage) =>
+  ORDER.indexOf(at) < ORDER.indexOf(CHECKPOINT_STAGE[start]);
+
+/**
+ * Wraps a section the checkpoint skipped past, so it arrives finished.
+ *
+ * Declared out here on purpose. A component declared inside `Session` would be
+ * a new type on every render, and React would throw away and rebuild every
+ * section under it each time a single piece of state moved.
+ */
+function Before({ done, children }: { done: boolean; children: React.ReactNode }) {
+  return done ? <AlreadyHappened>{children}</AlreadyHappened> : <>{children}</>;
+}
+
+/** Which sections were over before this checkpoint began. */
+const historyOf = (start: Checkpoint) => ({
+  greeting: alreadyHappened(start, 'greeting'),
+  vibe: alreadyHappened(start, 'vibe'),
+  style: alreadyHappened(start, 'style'),
+  size: alreadyHappened(start, 'size'),
+  pieces: alreadyHappened(start, 'pieces'),
+  bag: alreadyHappened(start, 'bag'),
+});
+
 export function Session({
   onCollapse,
   onClose,
@@ -143,6 +176,12 @@ export function Session({
   start?: Checkpoint;
 }) {
   const from = answeredBefore(start);
+  const over = historyOf(start);
+
+  /* The questions filled in by the checkpoint. Only these arrive finished — a
+     question the shopper asks after landing here is happening now, and gets
+     the pacing every answer gets. */
+  const prefilled = useRef(new Set(from.asked)).current;
 
   /* --- How far the conversation has got ---------------------------------- */
   const [stage, setStage] = useState<Stage>(CHECKPOINT_STAGE[start]);
@@ -471,20 +510,25 @@ export function Session({
           style={{ paddingBottom: clearance + 24 }}
         >
           <Said>{opening.query}</Said>
-          <Line start={speaking} onDone={() => setGreeted(true)}>
-            {opening.greeting}
-          </Line>
+          <Before done={over.greeting}>
+            <Line start={speaking} onDone={() => setGreeted(true)}>
+              {opening.greeting}
+            </Line>
+          </Before>
 
           {reached(stage, 'vibe') && (
-            <VibeCheck
-              picks={vibePicks}
-              phase={vibePhase}
-              onToggle={toggleVibe}
-              onSettled={advance('style')}
-            />
+            <Before done={over.vibe}>
+              <VibeCheck
+                picks={vibePicks}
+                phase={vibePhase}
+                onToggle={toggleVibe}
+                onSettled={advance('style')}
+              />
+            </Before>
           )}
 
           {reached(stage, 'style') && (
+            <Before done={over.style}>
             <PickOne
               section={styleCheck}
               tiles={styleCheck.tiles}
@@ -496,9 +540,11 @@ export function Session({
               sharedId={(id) => `style-${id}`}
               confirmationIcon={<NecklineIcon />}
             />
+            </Before>
           )}
 
           {reached(stage, 'size') && (
+            <Before done={over.size}>
             <PickOne
               section={sizing}
               tiles={sizing.tiles}
@@ -510,9 +556,11 @@ export function Session({
               sharedId={(id) => `size-${id}`}
               confirmationIcon={<LengthIcon />}
             />
+            </Before>
           )}
 
           {reached(stage, 'pieces') && (
+            <Before done={over.pieces}>
             <PerfectFit
               opened={opened}
               choosing={choosing}
@@ -523,18 +571,22 @@ export function Session({
               onAddToBag={addToBag}
               onSettled={() => setGridReady(true)}
             />
+            </Before>
           )}
 
-          {/* Everything the shopper asked about it, in the order they asked. */}
+          {/* Everything the shopper asked about it, in the order they asked.
+              The ones the checkpoint filled in are history; one asked after
+              landing here is happening now, and is paced like any other. */}
           {asked.map((id, index) => {
             const answer = answers.find((candidate) => candidate.id === id);
             if (!answer) return null;
             return (
-              <Answer
-                key={answer.id}
-                answer={answer}
-                onSettled={index === asked.length - 1 ? onAnswered : undefined}
-              />
+              <Before key={answer.id} done={prefilled.has(answer.id)}>
+                <Answer
+                  answer={answer}
+                  onSettled={index === asked.length - 1 ? onAnswered : undefined}
+                />
+              </Before>
             );
           })}
 
@@ -552,20 +604,24 @@ export function Session({
           )}
 
           {reached(stage, 'bag') && (
-            <Bag
-              folded={promoAsked}
-              onCheckOut={goToCheckout}
-              onSettled={() => setBagSettled(true)}
-            />
+            <Before done={over.bag}>
+              <Bag
+                folded={promoAsked}
+                onCheckOut={goToCheckout}
+                onSettled={() => setBagSettled(true)}
+              />
+            </Before>
           )}
 
           {/* The promotion, asked with the bag in front of them. */}
           {promoAsked && (
-            <Promo
-              folded={reached(stage, 'checkout')}
-              onCheckOut={goToCheckout}
-              onSettled={() => setPromoSettled(true)}
-            />
+            <Before done={over.bag}>
+              <Promo
+                folded={reached(stage, 'checkout')}
+                onCheckOut={goToCheckout}
+                onSettled={() => setPromoSettled(true)}
+              />
+            </Before>
           )}
 
           {reached(stage, 'checkout') && (
@@ -641,19 +697,29 @@ function useFollowBottom(
   column: React.RefObject<HTMLDivElement | null>,
   clearance: number,
 ) {
+  /* Held out here rather than inside the effect. The effect re-runs whenever
+     the dock changes height, and a flag declared inside it would call every
+     one of those a fresh landing and jump instead of glide. */
+  const landed = useRef(false);
+
   useEffect(() => {
     const view = thread.current;
     const content = column.current;
     if (!view || !content) return;
 
     let frame = 0;
+
     const follow = () => {
       window.cancelAnimationFrame(frame);
       frame = window.requestAnimationFrame(() => {
+        /* The first position is taken, not travelled to. A checkpoint opens
+           with its whole history already in place, and gliding two thousand
+           pixels down through it is a journey nobody asked to watch. */
         view.scrollTo({
           top: view.scrollHeight,
-          behavior: prefersReducedMotion() ? 'auto' : 'smooth',
+          behavior: !landed.current || prefersReducedMotion() ? 'auto' : 'smooth',
         });
+        landed.current = true;
       });
     };
 

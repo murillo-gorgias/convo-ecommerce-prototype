@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { duration, moves, pace, prefersReducedMotion, stagger, typingSpeed } from '../../../motion/motion';
 import type { Phrase, Tile } from '../../../content/journey';
@@ -63,6 +63,43 @@ export function Steady({
 }
 
 /* ==========================================================================
+ * WHAT HAS ALREADY HAPPENED
+ *
+ * Jumping straight to the bag means the four questions above it were answered
+ * before the shopper arrived. They are there to be scrolled back to, not
+ * watched. Left to their own pacing they all start talking at once: five
+ * blocks type themselves out together, each one pushing the thread down under
+ * whatever is actually being looked at, and the whole conversation shifts
+ * about while none of it can be read.
+ *
+ * So a block can be marked as already done. Inside that mark every wait
+ * becomes no wait, every line arrives whole, and every section arrives open.
+ * The pacing is spent on the one section that is genuinely happening now.
+ * ========================================================================== */
+
+const Done = createContext(false);
+
+/** Marks everything inside it as having already happened. */
+export function AlreadyHappened({ children }: { children: ReactNode }) {
+  return <Done.Provider value={true}>{children}</Done.Provider>;
+}
+
+/** True when this block is history and should arrive finished, in one frame. */
+export const useAlreadyHappened = () => useContext(Done);
+
+/**
+ * An entrance, or no entrance at all.
+ *
+ * Something that already happened does not fade in — it is simply there. Five
+ * blocks fading and sliding into place at once is the blink, and none of them
+ * is the one being looked at. `initial: false` starts a motion element at its
+ * finished values, so it costs no frames.
+ */
+export function useArrival<T extends object>(move: T): T | (T & { initial: false }) {
+  return useAlreadyHappened() ? { ...move, initial: false as const } : move;
+}
+
+/* ==========================================================================
  * TYPING
  * ========================================================================== */
 
@@ -71,6 +108,7 @@ export function Steady({
  * for less movement gets the whole line at once.
  */
 function useTypewriter(text: string, start: boolean, onDone?: () => void) {
+  const done = useAlreadyHappened();
   const [count, setCount] = useState(0);
   const finished = useRef(onDone);
   finished.current = onDone;
@@ -78,7 +116,7 @@ function useTypewriter(text: string, start: boolean, onDone?: () => void) {
   useEffect(() => {
     if (!start) return;
 
-    if (prefersReducedMotion()) {
+    if (done || prefersReducedMotion()) {
       setCount(text.length);
       finished.current?.();
       return;
@@ -95,9 +133,12 @@ function useTypewriter(text: string, start: boolean, onDone?: () => void) {
     }, typingSpeed(text.length));
 
     return () => window.clearInterval(timer);
-  }, [start, text]);
+  }, [done, start, text]);
 
-  return { shown: text.slice(0, count), typing: start && count < text.length };
+  return {
+    shown: done ? text : text.slice(0, count),
+    typing: !done && start && count < text.length,
+  };
 }
 
 /* ==========================================================================
@@ -139,7 +180,7 @@ export function Line({
 
   return (
     <motion.p
-      {...moves.session.line}
+      {...useArrival(moves.session.line)}
       className="relative w-full font-[var(--font-ui)] text-[14px] leading-[var(--type-said-line)] text-black"
     >
       <span aria-hidden className="invisible">
@@ -315,7 +356,7 @@ export function Bullets({
 export function Label({ children }: { children: string }) {
   return (
     <motion.p
-      {...moves.session.label}
+      {...useArrival(moves.session.label)}
       className="w-full [font-family:var(--font-serif)] text-[length:var(--type-eyebrow-size)] font-[var(--type-eyebrow-weight)] normal-case leading-[var(--type-eyebrow-line)] text-black"
     >
       {children}
@@ -337,7 +378,7 @@ export function Section({
   return (
     <motion.section
       ref={innerRef}
-      {...moves.session.section}
+      {...useArrival(moves.session.section)}
       className="flex w-full flex-col items-start gap-3"
     >
       {children}
@@ -354,16 +395,21 @@ export function Section({
  * ========================================================================== */
 
 export function useSectionReveal() {
-  const [speaking, setSpeaking] = useState(false);
-  const [ready, setReady] = useState(false);
+  /* History opens already spoken and already answered. There is no beat to
+     wait through, because the beat was spent before the shopper arrived. */
+  const done = useAlreadyHappened();
+  const [speaking, setSpeaking] = useState(done);
+  const [ready, setReady] = useState(done);
 
   useEffect(() => {
+    if (done) return;
     const timer = window.setTimeout(() => setSpeaking(true), pace.beforeSpeech);
     return () => window.clearTimeout(timer);
-  }, []);
+  }, [done]);
 
   /** Called the moment the question has finished being asked. */
   const onSpoken = () => {
+    if (done) return;
     window.setTimeout(() => setReady(true), pace.afterSpeech);
   };
 
@@ -412,14 +458,16 @@ export function Body({
  * here, so no component reaches for `setTimeout` on its own.
  */
 export function useAfter(delay: number, run: boolean, then: () => void) {
+  const done = useAlreadyHappened();
   const act = useRef(then);
   act.current = then;
 
   useEffect(() => {
     if (!run) return;
-    const timer = window.setTimeout(() => act.current(), delay);
+    /* Nothing waits inside history. Every beat of it is already spent. */
+    const timer = window.setTimeout(() => act.current(), done ? 0 : delay);
     return () => window.clearTimeout(timer);
-  }, [delay, run]);
+  }, [delay, done, run]);
 }
 
 /* ==========================================================================
