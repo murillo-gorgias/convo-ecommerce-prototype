@@ -248,11 +248,32 @@ currently 280 milliseconds.
 | `galleryFrame` | One photograph of an opened piece crossing to the next | |
 | `galleryDot` | A pagination dot taking or losing the mark | |
 
-**Two numbers outside this file**, both at the top of `Session.tsx`:
+**Three numbers outside this file**, all at the top of `Session.tsx`:
 
 - `CLEAR_TIME` — how long unchosen images take to clear before the fold. 280ms.
 - `ACKNOWLEDGE_TIME` — how long a one-answer section stays open after being tapped, so the
   tap is seen before the section closes over it. 460ms.
+- `HEADER_CLEARANCE` — the room the floating header needs at the top of the thread. 104px.
+  The column reserves it and the scroll lands on it, so it cannot be two numbers.
+
+### Where the thread sits
+
+`useFollowBottom` in `Session.tsx` is the only thing that scrolls. It watches the
+conversation column and moves to the end whenever it grows. No section scrolls itself:
+several sections each calling `scrollIntoView` is what buried arriving cards under the dock.
+
+Two exceptions, both earned:
+
+**A section too tall to fit is held by its top, not its bottom.** Holding the bottom works
+only because a section fits on screen — hold the bottom and the question is still visible.
+The vibe check is 1106px against a 945px viewport, so holding its bottom put the label 325px
+above the top edge and opened it on the middle of a grid of photographs. Anything taller than
+the viewport now rests with its top at `HEADER_CLEARANCE`, and is read from its question
+down. It is the only section this applies to today.
+
+**The first position is taken, not travelled to.** A checkpoint opens with its whole history
+in place, and gliding two thousand pixels down through it is a journey nobody asked to watch.
+Every scroll after the first one glides.
 
 ## Shapes morph. Text never does.
 
@@ -342,7 +363,8 @@ Grouped under `moves.voice`.
 
 The five thinking animations live in `src/components/assistant/thinking/variations.tsx`.
 Each is a self-contained drawing, because its movement *is* the drawing. Compare them at
-`/#thinking`; switch the one in use by changing `THINKING` at the bottom of that file.
+`/#thinking`; switch the one in use by changing `THINKING` at the bottom of that file, which
+currently names `TwistChain`.
 
 All five share one idea: the line changes shape while light travels through it. Never a
 static track with something moving along it.

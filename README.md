@@ -84,8 +84,17 @@ answered, so one part can be watched without replaying the whole thing:
 | `#session` | The greeting — the whole session |
 | `#vibe` | The first question |
 | `#product` | The four recommended pieces |
+| `#reviews` | The answer that quotes a review, with its filters untouched |
 | `#cart` | The bag, with a piece already asked about and added |
 | `#checkout` | The total and the swipe |
+
+On a wide enough window a rail beside the phone lists these and jumps between them. It sits
+outside the frame because it is presentation dressing, not part of what is being designed.
+Picking the checkpoint you are already on runs it again; picking the storefront while on it
+does nothing, because the storefront is the live journey rather than a paced section.
+
+Everything above the checkpoint you land on arrives finished rather than replaying, so only
+the part being worked on is moving.
 
 Swapping in a different brand means changing `src/brand/` and `src/content/`. The experience
 itself does not change.
