@@ -525,10 +525,15 @@ export const confirmation = {
   email: 'norawhitfield@gmail.com',
   tail: " and you'll get tracking as soon as it ships.",
   order: {
+    /** Stated on the card itself, so the receipt says its own state. */
+    state: 'Order confirmed',
     number: 'Order #48210',
     arriving: 'Arriving Thu, Sep 3',
   },
-  chips: [{ id: 'notify', label: 'Text me when it ships' }] as Chip[],
+  chips: [
+    { id: 'details', label: 'Order details' },
+    { id: 'notify', label: 'Text me when it ships' },
+  ] as Chip[],
 } as const;
 
 /* ==========================================================================

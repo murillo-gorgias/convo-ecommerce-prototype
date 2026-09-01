@@ -576,11 +576,13 @@ export function Session({
         </div>
       </div>
 
+      {/* The bag empties when the order is placed. A count still sitting there
+          says the pieces are waiting to be bought, and they have been. */}
       <Dock
         innerRef={dockRef}
         suggestions={suggestions}
         inputRef={askRef}
-        bagCount={bagCount}
+        bagCount={stage === 'confirmed' ? 0 : bagCount}
         speaking={saying}
         onSpeak={saying ? undefined : onSpeak}
         pay={

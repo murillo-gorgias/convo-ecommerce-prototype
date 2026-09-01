@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion } from 'motion/react';
 import { bag, checkout, confirmation, promotion } from '../../../content/journey';
 import { moves, pace } from '../../../motion/motion';
-import { ChevronDownIcon, VerifiedIcon } from '../icons';
+import { CheckIcon, ChevronDownIcon, VerifiedIcon } from '../icons';
 import { Emphasis, Lines, Said, useAfter } from './parts';
 import { less, money } from './money';
 
@@ -182,8 +182,18 @@ export function Confirmation({
       {part === 'card' && (
       <motion.div
         {...moves.session.card}
-        className="flex w-full items-center gap-3 rounded-[var(--card-radius)] bg-[var(--card)] p-4"
+        className="flex w-full flex-col gap-3 rounded-[var(--card-radius)] bg-[var(--card)] p-4"
       >
+        {/* The card says its own state before it says what was bought. Green
+            and a tick are the two things read without being read. */}
+        <span className="flex w-full items-center gap-3 text-[var(--positive)]">
+          <CheckIcon size={24} />
+          <span className="font-[var(--font-ui)] text-[length:var(--type-label-size)] font-semibold uppercase leading-[var(--type-said-line)] tracking-[var(--type-label-tracking)]">
+            {confirmation.order.state}
+          </span>
+        </span>
+
+        <span className="flex w-full items-center gap-3">
         <span className="flex flex-1 flex-col">
           <span className="font-[var(--font-ui)] text-[14px] font-semibold leading-[var(--type-said-line)] text-black">
             {confirmation.order.number}
@@ -194,6 +204,7 @@ export function Confirmation({
         </span>
         <span className="font-[var(--font-ui)] text-[14px] leading-[var(--type-said-line)] text-black">
           {money(total)}
+        </span>
         </span>
       </motion.div>
       )}
