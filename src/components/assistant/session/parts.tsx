@@ -305,12 +305,12 @@ export function Bullets({
   );
 }
 
-/** The small caps heading that opens a section. */
+/** The editorial serif eyebrow that opens a section. */
 export function Label({ children }: { children: string }) {
   return (
     <motion.p
       {...moves.session.label}
-      className="w-full [font-family:var(--font-serif)] text-[length:var(--type-label-size)] font-semibold uppercase leading-[var(--type-said-line)] text-black"
+      className="w-full [font-family:var(--font-serif)] text-[length:var(--type-eyebrow-size)] font-[var(--type-eyebrow-weight)] lowercase leading-[var(--type-eyebrow-line)] text-black"
     >
       {children}
     </motion.p>

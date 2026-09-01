@@ -16,10 +16,13 @@
    * so the closest open equivalents stand in:
    *   Display  Archivo  stands in for SyndicatGrotesk (headings, navigation)
    *   UI       Inter    matches the design file's interface type
+   *
+   * Feature Deck is the editorial serif the eyebrow of every section is set
+   * in. It ships subsetted to the characters the prototype actually prints.
    * ---------------------------------------------------------------------- */
   --font-display: 'Archivo', Arial, Helvetica, sans-serif;
   --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-serif: Georgia, 'Times New Roman', serif;
+  --font-serif: 'Feature Deck', Georgia, 'Times New Roman', serif;
 
   /* ---- Type scale — measured from the live storefront ------------------- */
   --type-nav-size: 14px;
@@ -122,6 +125,13 @@
   --type-label-size: 12px;
   --type-label-tracking: 0.96px;
   --type-said-line: 21px;
+
+  /* The eyebrow that opens a section — "vibe check", "sizing". Set in the
+     editorial serif, lower case, large enough to read as a title rather than
+     a caption. */
+  --type-eyebrow-size: 20px;
+  --type-eyebrow-weight: 400;
+  --type-eyebrow-line: 26px;
 }
 
 /* ==========================================================================
