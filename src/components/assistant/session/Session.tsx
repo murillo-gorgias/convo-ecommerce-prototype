@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import {
   answers,
+  reviewAnswers,
   bag,
   chips,
   checkout,
@@ -87,6 +88,16 @@ const ORDER: Stage[] = [
   'confirmed',
 ];
 const reached = (stage: Stage, at: Stage) => ORDER.indexOf(stage) >= ORDER.indexOf(at);
+
+/**
+ * Every turn the shopper can end up with, on the path or asked for.
+ *
+ * `answers` are passed through on the way to the bag. `reviewAnswers` are only
+ * reached by asking the reviews about something, so a checkpoint never fills
+ * one in — landing at the reviews leaves the filters untouched.
+ */
+const ALL_ANSWERS = [...answers, ...reviewAnswers];
+const answerFor = (id: string) => ALL_ANSWERS.find((answer) => answer.id === id);
 
 /** How long the unchosen images take to clear before the fold begins. */
 const CLEAR_TIME = 280;
@@ -475,7 +486,7 @@ export function Session({
     } else if (opened) {
       /* The questions offered are those raised by the last answer given, or
          the piece's own opening set if nothing has been asked yet. */
-      const last = asked.length ? answers.find((a) => a.id === asked[asked.length - 1]) : undefined;
+      const last = asked.length ? answerFor(asked[asked.length - 1]) : undefined;
       const offered = (last ? last.chips : productDetail.chips).filter(
         (chip) => !asked.includes(chip.id),
       );
@@ -498,7 +509,7 @@ export function Session({
           primary: chip.primary,
           spoken: chip.voice,
           onSelect: () => {
-            if (answers.some((a) => a.id === chip.id)) ask(chip.id);
+            if (answerFor(chip.id)) ask(chip.id);
             else focusAsk();
           },
         }),
@@ -510,8 +521,8 @@ export function Session({
          only spoken step left is putting it all in the bag. */
       const said = offered.find((chip) => chip.voice);
       if (said?.id === 'add-both') onSpeak = () => speak(bag.command, addToBag);
-      else if (said && answers.some((a) => a.id === said.id)) {
-        onSpeak = () => speak(answers.find((a) => a.id === said.id)!.question, () => ask(said.id));
+      else if (said && answerFor(said.id)) {
+        onSpeak = () => speak(answerFor(said.id)!.question, () => ask(said.id));
       }
     }
   }
@@ -603,13 +614,14 @@ export function Session({
               The ones the checkpoint filled in are history; one asked after
               landing here is happening now, and is paced like any other. */}
           {asked.map((id, index) => {
-            const answer = answers.find((candidate) => candidate.id === id);
+            const answer = answerFor(id);
             if (!answer) return null;
             return (
               <Before key={answer.id} done={prefilled.has(answer.id)}>
                 <Answer
                   answer={answer}
                   onSettled={index === asked.length - 1 ? onAnswered : undefined}
+                  onAsk={ask}
                 />
               </Before>
             );

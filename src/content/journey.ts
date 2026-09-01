@@ -305,15 +305,19 @@ export type Review = {
 /**
  * A way to ask the reviews about one thing in particular.
  *
- * Offered under the first quoted review, because that is the moment the
- * shopper knows reviews exist and starts wanting a specific one. Picking one
- * brings up a buyer who wrote about that.
+ * Offered under the quoted review, because that is the moment the shopper
+ * knows reviews exist and starts wanting a specific one.
+ *
+ * Picking one is the shopper asking a question, not filtering a list. It reads
+ * back as their own words, the assistant answers it, and a buyer who wrote
+ * about that thing is quoted — the same shape as every other turn. `asks` is
+ * the id of the answer it opens; a filter without one is offered but says
+ * nothing back.
  */
 export type ReviewFilter = {
   id: string;
   label: string;
-  /** The review it brings up. A filter with none is offered but says nothing. */
-  review?: Review;
+  asks?: string;
 };
 
 /** A single piece offered inside an answer. */
@@ -346,8 +350,12 @@ export type Answer = {
    * and is reading what other buyers said.
    */
   reviewFilters?: readonly ReviewFilter[];
-  /** A last line after the review, turning the answer into a next step. */
-  closing?: string;
+  /**
+   * A last line after the review, turning the answer into a next step. Given
+   * as phrases where part of it carries weight — a piece named in the question
+   * is set in semibold, so the shopper sees which one is being asked about.
+   */
+  closing?: string | readonly Phrase[];
   offer?: Offer;
   /** What to offer next, once this answer has been given. */
   chips: Chip[];
@@ -391,22 +399,7 @@ export const answers: Answer[] = [
       photos: [asset('/brand/products/review-priya-1.png'), asset('/brand/products/review-priya-2.png')],
     },
     reviewFilters: [
-      {
-        id: 'quality',
-        label: 'Quality',
-        review: {
-          author: 'Maren S.',
-          rating: 5.0,
-          body: "I have pieces at three times the price that don't sit this well. The chain has real weight to it, the clasp is precise, and the setting hasn't shifted at all. Six months in and it still catches the light the way it did in the box.",
-          /* The design only draws photographs on the first card, so these are
-             the sapphire shots the prototype already holds. Swap them for real
-             buyer photographs when there are any. */
-          photos: [
-            asset('/brand/products/worn-floating-sapphire.png'),
-            asset('/brand/products/worn-sapphire-cluster.png'),
-          ],
-        },
-      },
+      { id: 'quality', label: 'Quality', asks: 'quality' },
       /* Offered, but with nothing behind them. The prototype demonstrates one
          filter working; the rest are there so the row reads as a real choice
          rather than a single button. */
@@ -415,6 +408,47 @@ export const answers: Answer[] = [
     ],
     closing: 'Want me to add a care kit so it stays that way, or show you this one in solid gold?',
     offer: careKit,
+    chips: [
+      { id: 'add-both', label: 'Add necklace to bag', primary: true, voice: true },
+      { id: 'solid-gold', label: 'Show solid gold' },
+      { id: 'more-reviews', label: 'What other reviewers say?' },
+    ],
+  },
+];
+
+/**
+ * THE ANSWERS REACHED BY ASKING THE REVIEWS
+ *
+ * Kept apart from `answers` because they are not on the way through. Nobody
+ * passes them; the shopper has to ask. A checkpoint therefore never fills them
+ * in — landing at the reviews means the filters are there, untouched.
+ */
+export const reviewAnswers: Answer[] = [
+  {
+    id: 'quality',
+    question: 'What reviewers say about its quality?',
+    lines: [
+      'The build quality is what reviewers bring up most — it wears like something that cost more.',
+    ],
+    review: {
+      author: 'Maren S.',
+      rating: 4.8,
+      body: "I have pieces at three times the price that don't sit this well. The chain has real weight to it, the clasp is precise, and the setting hasn't shifted at all. Six months in and it still catches the light the way it did in the box.",
+      photos: [
+        asset('/brand/products/review-maren-1.png'),
+        asset('/brand/products/review-maren-2.png'),
+      ],
+    },
+    /* Quality is gone from the row: it is the question that was just asked. */
+    reviewFilters: [
+      { id: 'sizing', label: 'Sizing' },
+      { id: 'length', label: 'Length' },
+    ],
+    closing: [
+      { text: 'Does the ' },
+      { text: 'Floating Sapphire', strong: true },
+      { text: ' look right for you?' },
+    ],
     chips: [
       { id: 'add-both', label: 'Add necklace to bag', primary: true, voice: true },
       { id: 'solid-gold', label: 'Show solid gold' },

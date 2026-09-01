@@ -10,7 +10,7 @@ import {
 } from '../../../content/journey';
 import { moves, pace } from '../../../motion/motion';
 import { ChevronDownIcon, HeartIcon, SparkIcon, StarIcon, VerifiedIcon } from '../icons';
-import { Bullets, Label, Lines, Said, useAfter } from './parts';
+import { Bullets, Emphasis, Label, Lines, Said, useAfter } from './parts';
 
 /**
  * ============================================================================
@@ -71,29 +71,38 @@ export function Answer({
   answer,
   innerRef,
   onSettled,
+  onAsk,
 }: {
   answer: AnswerContent;
   innerRef?: React.Ref<HTMLDivElement>;
   /** Called once every part of the answer has been given and shown. */
   onSettled?: () => void;
+  /** Asks the question a review filter stands for. The turn it opens is added
+   *  to the thread by the session, exactly as a tapped suggestion would be. */
+  onAsk?: (id: string) => void;
 }) {
   const [part, setPart] = useState<Part>('question');
 
-  /** The filter the shopper picked, and the review it brought up. */
-  const [asked, setAsked] = useState<ReviewFilter>();
+  /** The filter the shopper picked, if it was one that asks something. */
+  const [picked, setPicked] = useState<ReviewFilter>();
 
   /**
-   * Once a filter has brought a second review up, the answer stops selling.
+   * Once the shopper has asked the reviews a question, this answer stops
+   * selling.
    *
    * The closing line only exists to offer the care kit, so the two go together
    * — a question about a kit that is no longer on screen reads as a mistake.
-   * What the shopper does next is the step they were always going to take:
-   * putting the necklace in the bag, which the suggestions above the input
-   * already offer.
+   * The conversation carries on in the turn the filter opened.
    */
-  const stoppedSelling = Boolean(asked?.review);
+  const stoppedSelling = Boolean(picked?.asks);
 
   const hasFilters = Boolean(answer.reviewFilters?.length);
+
+  const pick = (filter: ReviewFilter) => {
+    if (!filter.asks || picked) return;
+    setPicked(filter);
+    onAsk?.(filter.asks);
+  };
 
   /* The question lands, and the assistant takes the same beat a person would
      take before answering it. */
@@ -149,17 +158,13 @@ export function Answer({
 
       {reached('review') && answer.review && <ReviewCard review={answer.review} />}
 
-      {/* The review a filter brought up, under the one that was already there.
-          Nothing is replaced: the shopper asked for more, and got more. */}
-      {asked?.review && <ReviewCard review={asked.review} />}
-
-      {/* The filters sit below whichever review is last, so they stay the
-          control for what comes next. */}
+      {/* Asking the reviews about one thing. What comes back is a whole turn
+          further down the thread, not another card bolted onto this one. */}
       {reached('filters') && answer.reviewFilters && (
         <ReviewFilters
           filters={answer.reviewFilters}
-          picked={asked?.id}
-          onPick={setAsked}
+          picked={picked?.id}
+          onPick={pick}
         />
       )}
 
@@ -169,9 +174,13 @@ export function Answer({
       <AnimatePresence>
         {reached('closing') && answer.closing && !stoppedSelling && (
           <motion.div key="closing" {...moves.session.leaving} className="w-full">
-            <Lines start onDone={() => setPart('offer')}>
-              {[answer.closing]}
-            </Lines>
+            {typeof answer.closing === 'string' ? (
+              <Lines start onDone={() => setPart('offer')}>
+                {[answer.closing]}
+              </Lines>
+            ) : (
+              <Emphasis phrases={answer.closing} start onDone={() => setPart('offer')} />
+            )}
           </motion.div>
         )}
 
