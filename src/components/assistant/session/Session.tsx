@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { motion } from 'motion/react';
 import {
   answers,
+  baggingWords,
   reviewAnswers,
   bag,
   chips,
@@ -15,9 +15,10 @@ import {
   styleCheck,
   vibeCheck,
 } from '../../../content/journey';
-import { moves, pace, prefersReducedMotion } from '../../../motion/motion';
+import { pace, prefersReducedMotion } from '../../../motion/motion';
 import { Dock, SessionGround, SessionHeader, type Suggestion } from './Chrome';
 import { AlreadyHappened, Line, Said, useAfter } from './parts';
+import { Working } from '../thinking/variations';
 import { VibeCheck } from './VibeCheck';
 import { PickOne } from './PickOne';
 import { PerfectFit } from './PerfectFit';
@@ -640,14 +641,10 @@ export function Session({
               While it is still being spoken it lives in the input instead. */}
           {(adding || bagCount > 0) && <Said>{bag.command}</Said>}
 
-          {adding && (
-            <motion.span
-              aria-label="Adding"
-              animate={moves.session.working.animate}
-              transition={moves.session.working.transition}
-              className="mx-auto block h-10 w-10 shrink-0 rounded-full border-2 border-black/10 border-t-black/40"
-            />
-          )}
+          {/* The same bubble the assistant thinks in, saying the one thing
+              that is happening. A spinning ring here was the only wait in the
+              session that did not look like the assistant working. */}
+          {adding && <Working words={baggingWords} />}
 
           {reached(stage, 'bag') && (
             <Before done={over.bag}>

@@ -122,6 +122,9 @@ export const opening = {
  * Short enough to be read at a glance, because none of them is up for long.
  * ========================================================================== */
 
+/** What it says while the pieces go into the bag. One thing is happening. */
+export const baggingWords = ['Adding to your bag...'] as const;
+
 export const thinkingWords = [
   'Browsing fantastic options...',
   'Reading what buyers said...',

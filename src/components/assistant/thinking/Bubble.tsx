@@ -76,7 +76,18 @@ const DOTS_WIDTH = 56;
    centred in a 56px pill. */
 const DOTS = [22, 28, 34];
 
-export function ThinkingBubble({ timing }: { timing: Timing }) {
+export function ThinkingBubble({
+  timing,
+  words = thinkingWords,
+}: {
+  timing: Timing;
+  /**
+   * What it says between turns of the dots. Pass a shorter roster where the
+   * wait is about one thing, or an empty one where the wait is too short to
+   * read anything — then it is dots and the trace, nothing else.
+   */
+  words?: readonly string[];
+}) {
   const still = prefersReducedMotion();
 
   /** Which sentence is up, or none — in which case the dots have it. */
@@ -94,12 +105,12 @@ export function ThinkingBubble({ timing }: { timing: Timing }) {
   /* The two states take turns. Dots for a while, then a sentence, then the
      dots again with the next sentence queued behind them. */
   useEffect(() => {
-    if (still) return;
+    if (still || words.length === 0) return;
     let at = -1;
     let timer = 0;
 
     const toWords = () => {
-      at = (at + 1) % thinkingWords.length;
+      at = (at + 1) % words.length;
       setSaying(at);
       timer = window.setTimeout(toDots, timing.wordsFor * 1000);
     };
@@ -110,7 +121,10 @@ export function ThinkingBubble({ timing }: { timing: Timing }) {
 
     timer = window.setTimeout(toWords, timing.dotsFor * 1000);
     return () => window.clearTimeout(timer);
-  }, [still, timing.dotsFor, timing.wordsFor]);
+    /* Counted, not compared. A caller writing `words={[]}` inline hands over a
+       fresh array on every render, and depending on the array itself would
+       restart the schedule each time. */
+  }, [still, words.length, timing.dotsFor, timing.wordsFor]);
 
   /* The bubble is only ever as wide as what is inside it. Sentences are
      different lengths, and a fixed width would leave a gap after the short
@@ -164,7 +178,7 @@ export function ThinkingBubble({ timing }: { timing: Timing }) {
         aria-hidden
         className="pointer-events-none invisible absolute left-0 top-0 whitespace-nowrap font-[var(--font-ui)] text-[14px] font-medium leading-[20px]"
       >
-        {saying === undefined ? '' : thinkingWords[saying]}
+        {saying === undefined ? '' : words[saying]}
       </span>
 
       <div className="absolute inset-0 flex items-center justify-center px-3">
@@ -208,7 +222,7 @@ export function ThinkingBubble({ timing }: { timing: Timing }) {
                     }
               }
             >
-              {thinkingWords[saying]}
+              {words[saying]}
             </motion.span>
           )}
         </AnimatePresence>

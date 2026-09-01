@@ -120,7 +120,7 @@
      line travelling around the outline's path. */
   --thinking-outline: rgba(235, 235, 235, 0.8);
   --thinking-trace: #000000;        /* the line going round */
-  --thinking-dot: #807d7c;          /* a dot waiting its turn */
+  --thinking-dot: #c2bfbd;          /* a dot waiting its turn */
   --thinking-dot-lit: #252423;      /* the dot whose turn it is */
   --thinking-word: #252423;         /* the head of the shimmer */
   --thinking-word-far: #8b8783;     /* its tail */

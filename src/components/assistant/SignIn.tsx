@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { dock, opening, shopper } from '../../content/journey';
 import { assistantCopy } from '../../content/assistant';
 import { moves, pace } from '../../motion/motion';
+import { NO_WORDS, Working } from './thinking/variations';
 import { CloseIcon, ExpandIcon, MicIcon } from './icons';
 import { Line, Said, useAfter } from './session/parts';
 
@@ -169,18 +170,9 @@ function Opening() {
       {...moves.assistant.contentSwap}
       className="flex h-16 items-center gap-4 rounded-[24px] border border-[var(--confirmed-border)] bg-[var(--confirmed-bg)] px-5"
     >
-      <span className="relative flex h-12 w-12 shrink-0 items-center justify-center text-[var(--ink-soft)]">
-        <motion.span
-          className="absolute h-12 w-12 rounded-full border-2 border-current border-x-transparent"
-          animate={{ rotate: [0, 180, 360] }}
-          transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-        />
-        <motion.span
-          className="absolute h-8 w-8 rounded-full border-2 border-current border-y-transparent opacity-55"
-          animate={{ rotate: [0, -180, -360] }}
-          transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut', delay: 0.2 }}
-        />
-      </span>
+      {/* Dots and the trace, no words. The card already says what is
+          happening, and the wait is too short to read anything twice. */}
+      <Working words={NO_WORDS} />
 
       {/* Light travelling across the words while the account opens. */}
       <motion.span

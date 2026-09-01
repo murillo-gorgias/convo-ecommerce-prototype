@@ -139,9 +139,26 @@ export const thinkingVariations = [
 ] as const;
 
 /**
- * The variation the console currently uses.
+ * THE CHOSEN TIMING
  *
- * `measured` is the design's own timing, and stays the default until the
- * comparison at `/#thinking` settles on another.
+ * `Measured` — the design's own numbers. Picked on 2026-09-01 from the six at
+ * `/#thinking`, which stay there for the next round of tuning.
+ *
+ * Every wait in the prototype runs on this, so changing it here changes all of
+ * them at once.
  */
-export const THINKING = () => <ThinkingBubble timing={timings.measured} />;
+export const thinkingTiming = timings.measured;
+
+/** The assistant composing a reply: the full roster of sentences. */
+export const THINKING = () => <ThinkingBubble timing={thinkingTiming} />;
+
+/** For a wait with nothing worth saying: dots and the trace, no sentences. */
+export const NO_WORDS: readonly string[] = [];
+
+/**
+ * A wait that is about one thing, so it says that thing instead of working
+ * through the roster. Pass `NO_WORDS` and it is dots and the trace alone.
+ */
+export function Working({ words }: { words?: readonly string[] }) {
+  return <ThinkingBubble timing={thinkingTiming} words={words} />;
+}
