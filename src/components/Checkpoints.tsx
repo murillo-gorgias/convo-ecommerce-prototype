@@ -30,6 +30,7 @@ export const STOPS: Stop[] = [
   { hash: '#session', label: 'Greeting' },
   { hash: '#vibe', label: 'Vibe check' },
   { hash: '#product', label: 'Product' },
+  { hash: '#reviews', label: 'Reviews' },
   { hash: '#cart', label: 'Bag' },
   { hash: '#checkout', label: 'Checkout' },
 ];

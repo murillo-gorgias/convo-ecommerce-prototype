@@ -1,14 +1,15 @@
 import { useState } from 'react';
-import { motion } from 'motion/react';
+import { AnimatePresence, motion } from 'motion/react';
 import {
   offerCopy,
   reviewCopy,
   type Answer as AnswerContent,
   type Offer,
   type Review,
+  type ReviewFilter,
 } from '../../../content/journey';
 import { moves, pace } from '../../../motion/motion';
-import { ChevronDownIcon, HeartIcon, StarIcon, VerifiedIcon } from '../icons';
+import { ChevronDownIcon, HeartIcon, SparkIcon, StarIcon, VerifiedIcon } from '../icons';
 import { Bullets, Label, Lines, Said, useAfter } from './parts';
 
 /**
@@ -45,9 +46,26 @@ import { Bullets, Label, Lines, Said, useAfter } from './parts';
  */
 
 /** How far through an answer we are. Each part waits for the one before it. */
-type Part = 'question' | 'summary' | 'points' | 'review' | 'closing' | 'offer' | 'done';
+type Part =
+  | 'question'
+  | 'summary'
+  | 'points'
+  | 'review'
+  | 'filters'
+  | 'closing'
+  | 'offer'
+  | 'done';
 
-const PARTS: Part[] = ['question', 'summary', 'points', 'review', 'closing', 'offer', 'done'];
+const PARTS: Part[] = [
+  'question',
+  'summary',
+  'points',
+  'review',
+  'filters',
+  'closing',
+  'offer',
+  'done',
+];
 
 export function Answer({
   answer,
@@ -61,6 +79,22 @@ export function Answer({
 }) {
   const [part, setPart] = useState<Part>('question');
 
+  /** The filter the shopper picked, and the review it brought up. */
+  const [asked, setAsked] = useState<ReviewFilter>();
+
+  /**
+   * Once a filter has brought a second review up, the answer stops selling.
+   *
+   * The closing line only exists to offer the care kit, so the two go together
+   * — a question about a kit that is no longer on screen reads as a mistake.
+   * What the shopper does next is the step they were always going to take:
+   * putting the necklace in the bag, which the suggestions above the input
+   * already offer.
+   */
+  const stoppedSelling = Boolean(asked?.review);
+
+  const hasFilters = Boolean(answer.reviewFilters?.length);
+
   /* The question lands, and the assistant takes the same beat a person would
      take before answering it. */
   useAfter(pace.afterSaid, part === 'question', () => setPart('summary'));
@@ -68,17 +102,23 @@ export function Answer({
   /* The parts that follow the summary, each after the one before it. Anything
      this answer does not have is stepped straight past. */
   useAfter(pace.betweenParts, part === 'points' && !answer.reviewSummary, () => setPart('review'));
-  useAfter(pace.betweenParts, part === 'review' && !answer.review, () => setPart('closing'));
+  useAfter(pace.betweenParts, part === 'review' && !answer.review, () => setPart('filters'));
+  useAfter(pace.betweenParts, part === 'filters' && !hasFilters, () => setPart('closing'));
   useAfter(pace.betweenParts, part === 'closing' && !answer.closing, () => setPart('offer'));
   useAfter(pace.betweenParts, part === 'offer' && !answer.offer, () => setPart('done'));
 
   /* And the ones it does have, held long enough to be taken in. */
   useAfter(pace.betweenParts, part === 'review' && Boolean(answer.review), () =>
-    setPart('closing'),
+    setPart('filters'),
   );
+  useAfter(pace.betweenParts, part === 'filters' && hasFilters, () => setPart('closing'));
   useAfter(pace.betweenParts, part === 'offer' && Boolean(answer.offer), () => setPart('done'));
 
   useAfter(pace.afterSpeech, part === 'done', () => onSettled?.());
+
+  /* Picking a filter that has a review jumps straight to the end of the
+     answer: the second review is the last thing it has to say. */
+  useAfter(pace.betweenParts, stoppedSelling, () => setPart('done'));
 
   const reached = (at: Part) => PARTS.indexOf(part) >= PARTS.indexOf(at);
 
@@ -109,13 +149,38 @@ export function Answer({
 
       {reached('review') && answer.review && <ReviewCard review={answer.review} />}
 
-      {reached('closing') && answer.closing && (
-        <Lines start onDone={() => setPart('offer')}>
-          {[answer.closing]}
-        </Lines>
+      {/* The review a filter brought up, under the one that was already there.
+          Nothing is replaced: the shopper asked for more, and got more. */}
+      {asked?.review && <ReviewCard review={asked.review} />}
+
+      {/* The filters sit below whichever review is last, so they stay the
+          control for what comes next. */}
+      {reached('filters') && answer.reviewFilters && (
+        <ReviewFilters
+          filters={answer.reviewFilters}
+          picked={asked?.id}
+          onPick={setAsked}
+        />
       )}
 
-      {reached('offer') && answer.offer && <OfferRow offer={answer.offer} />}
+      {/* The closing line and what it offers leave together once the shopper
+          has gone to the reviews. Faded out rather than cut, because something
+          vanishing between two frames reads as a fault. */}
+      <AnimatePresence>
+        {reached('closing') && answer.closing && !stoppedSelling && (
+          <motion.div key="closing" {...moves.session.leaving} className="w-full">
+            <Lines start onDone={() => setPart('offer')}>
+              {[answer.closing]}
+            </Lines>
+          </motion.div>
+        )}
+
+        {reached('offer') && answer.offer && !stoppedSelling && (
+          <motion.div key="offer" {...moves.session.leaving} className="w-full">
+            <OfferRow offer={answer.offer} />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
@@ -144,8 +209,10 @@ export function ReviewCard({ review }: { review: Review }) {
 
         <span className="ml-auto flex items-center gap-[2px] text-black">
           <StarIcon size={14} />
+          {/* Always one decimal. A flawless review reads "5.0" beside a
+              "4.9", where a bare "5" reads as a different kind of number. */}
           <span className="font-[var(--font-ui)] text-[14px] leading-[21px] text-[var(--card-meta)]">
-            {review.rating}
+            {review.rating.toFixed(1)}
           </span>
         </span>
       </div>
@@ -162,6 +229,66 @@ export function ReviewCard({ review }: { review: Review }) {
         </span>
         <ChevronDownIcon size={20} />
       </button>
+
+      {/* What the buyer photographed. Square, small, and their own — a review
+          of how something wears is worth more with the picture than without. */}
+      {review.photos && review.photos.length > 0 && (
+        <div className="flex items-start gap-2">
+          {review.photos.map((photo) => (
+            <img
+              key={photo}
+              src={photo}
+              alt=""
+              draggable={false}
+              className="size-16 shrink-0 rounded-[12px] object-cover shadow-[var(--card-shadow)]"
+            />
+          ))}
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
+/* ==========================================================================
+ * ASKING THE REVIEWS ABOUT ONE THING
+ *
+ * A row of small chips under the quoted review. They sit to the right, where
+ * everything the shopper can tap sits, so the row reads as a choice rather
+ * than as more of the card above it.
+ *
+ * The row travels: once a filter has brought a second review up, it moves
+ * below that one, because it is the control for what comes next and what
+ * comes next is always at the bottom.
+ * ========================================================================== */
+
+function ReviewFilters({
+  filters,
+  picked,
+  onPick,
+}: {
+  filters: readonly ReviewFilter[];
+  picked?: string;
+  onPick: (filter: ReviewFilter) => void;
+}) {
+  return (
+    <motion.div
+      {...moves.session.review}
+      className="flex w-full flex-wrap items-center justify-end gap-2"
+    >
+      {filters.map((filter) => (
+        <motion.button
+          key={filter.id}
+          whileTap={moves.assistant.press}
+          onClick={() => onPick(filter)}
+          aria-pressed={picked === filter.id}
+          className={`flex items-center gap-1 rounded-[32px] border border-[var(--chip-border)] px-3 py-2 font-[var(--font-ui)] text-[10px] font-medium text-black ${
+            picked === filter.id ? 'bg-[var(--control-dark)] text-white' : 'bg-[var(--chip)]'
+          }`}
+        >
+          <SparkIcon size={12} />
+          {filter.label}
+        </motion.button>
+      ))}
     </motion.div>
   );
 }

@@ -290,8 +290,30 @@ export const productDetail = {
 export type Review = {
   author: string;
   rating: number;
-  title: string;
+  title?: string;
   body: string;
+  /**
+   * What the buyer photographed, shown along the bottom of their card.
+   *
+   * A review of how something looks, wearing, is worth more with the buyer's
+   * own picture of it than without. These are their photographs, not the
+   * campaign's, and that is the point of them.
+   */
+  photos?: readonly string[];
+};
+
+/**
+ * A way to ask the reviews about one thing in particular.
+ *
+ * Offered under the first quoted review, because that is the moment the
+ * shopper knows reviews exist and starts wanting a specific one. Picking one
+ * brings up a buyer who wrote about that.
+ */
+export type ReviewFilter = {
+  id: string;
+  label: string;
+  /** The review it brings up. A filter with none is offered but says nothing. */
+  review?: Review;
 };
 
 /** A single piece offered inside an answer. */
@@ -317,6 +339,13 @@ export type Answer = {
    */
   reviewSummary?: readonly string[];
   review?: Review;
+  /**
+   * Offered under the quoted review. Picking one that has a review of its own
+   * brings it up, and the answer stops there: the closing line and whatever it
+   * offered are dropped, because the shopper has moved on from being sold to
+   * and is reading what other buyers said.
+   */
+  reviewFilters?: readonly ReviewFilter[];
   /** A last line after the review, turning the answer into a next step. */
   closing?: string;
   offer?: Offer;
@@ -358,9 +387,32 @@ export const answers: Answer[] = [
     review: {
       author: 'Priya K.',
       rating: 4.9,
-      title: 'Wore it every day for a year',
       body: "Honestly expected it to go dull by now. It hasn't. I take it off for showers and that's about it — the odd wipe with the cloth it came with. Still looks like the day I got it.",
+      photos: [asset('/brand/products/review-priya-1.png'), asset('/brand/products/review-priya-2.png')],
     },
+    reviewFilters: [
+      {
+        id: 'quality',
+        label: 'Quality',
+        review: {
+          author: 'Maren S.',
+          rating: 5.0,
+          body: "I have pieces at three times the price that don't sit this well. The chain has real weight to it, the clasp is precise, and the setting hasn't shifted at all. Six months in and it still catches the light the way it did in the box.",
+          /* The design only draws photographs on the first card, so these are
+             the sapphire shots the prototype already holds. Swap them for real
+             buyer photographs when there are any. */
+          photos: [
+            asset('/brand/products/worn-floating-sapphire.png'),
+            asset('/brand/products/worn-sapphire-cluster.png'),
+          ],
+        },
+      },
+      /* Offered, but with nothing behind them. The prototype demonstrates one
+         filter working; the rest are there so the row reads as a real choice
+         rather than a single button. */
+      { id: 'sizing', label: 'Sizing' },
+      { id: 'length', label: 'Length' },
+    ],
     closing: 'Want me to add a care kit so it stays that way, or show you this one in solid gold?',
     offer: careKit,
     chips: [

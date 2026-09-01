@@ -575,6 +575,20 @@ export const moves = {
       transition: { duration: duration.unhurried, ease: easing.refined, delay: 0.1 },
     },
 
+    /**
+     * Something the conversation has finished with, on its way out.
+     *
+     * It collapses its own height as it fades, so the thread closes over the
+     * gap rather than leaving a hole where it used to be. Faster than an
+     * arrival: nobody needs to watch something leave.
+     */
+    leaving: {
+      initial: { opacity: 1 },
+      animate: { opacity: 1 },
+      exit: { opacity: 0, height: 0, marginTop: -16, transition: { duration: duration.base } },
+      transition: { duration: duration.base, ease: easing.refined },
+    },
+
     /* ----------------------------------------------------------------
      * THE BAG AND WHAT FOLLOWS IT
      * ---------------------------------------------------------------- */

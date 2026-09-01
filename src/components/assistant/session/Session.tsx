@@ -105,20 +105,31 @@ const ACKNOWLEDGE_TIME = 460;
  *
  * They are for review only. A real shopper always starts at `greeting`.
  */
-export type Checkpoint = 'greeting' | 'vibe' | 'product' | 'cart' | 'checkout';
+export type Checkpoint = 'greeting' | 'vibe' | 'product' | 'reviews' | 'cart' | 'checkout';
 
 const CHECKPOINT_STAGE: Record<Checkpoint, Stage> = {
   greeting: 'greeting',
   vibe: 'vibe',
   product: 'pieces',
+  reviews: 'pieces',
   cart: 'bag',
   checkout: 'checkout',
 };
 
 /** What has already been answered by the time a checkpoint begins. */
 const answeredBefore = (checkpoint: Checkpoint) => {
-  const questionsDone = checkpoint === 'product' || checkpoint === 'cart' || checkpoint === 'checkout';
+  const questionsDone =
+    checkpoint === 'product' ||
+    checkpoint === 'reviews' ||
+    checkpoint === 'cart' ||
+    checkpoint === 'checkout';
   const bagged = checkpoint === 'cart' || checkpoint === 'checkout';
+
+  /* The reviews are inside the answer about tarnishing, so reaching them means
+     the piece is open and the question before it has been asked. That earlier
+     answer arrives finished; the one holding the reviews plays. */
+  const atReviews = checkpoint === 'reviews';
+  const asked = bagged || atReviews ? answers.map((answer) => answer.id) : [];
 
   return {
     questionsDone,
@@ -128,7 +139,15 @@ const answeredBefore = (checkpoint: Checkpoint) => {
     promoDone: checkpoint === 'checkout',
     /* At the bag and beyond, a piece has been opened and asked about, so it
        sits folded with the conversation about it above the bag. */
-    asked: bagged ? answers.map((answer) => answer.id) : [],
+    asked,
+    /* A piece is open from the reviews onward. */
+    pieceOpen: bagged || atReviews,
+    /**
+     * The one answer that plays rather than arriving finished. At the reviews
+     * checkpoint that is the answer holding them, because it is the part being
+     * worked on; everything before it is history.
+     */
+    playing: atReviews ? answers[answers.length - 1].id : undefined,
   };
 };
 
@@ -161,7 +180,11 @@ const historyOf = (start: Checkpoint) => ({
   vibe: alreadyHappened(start, 'vibe'),
   style: alreadyHappened(start, 'style'),
   size: alreadyHappened(start, 'size'),
-  pieces: alreadyHappened(start, 'pieces'),
+  /* At the reviews checkpoint the part being worked on is the answer, not the
+     grid that led to it, so the pieces count as history too. Without this the
+     folded product card asks its question at the same moment the answer above
+     the reviews is typing itself out. */
+  pieces: start === 'reviews' || alreadyHappened(start, 'pieces'),
   bag: alreadyHappened(start, 'bag'),
 });
 
@@ -181,7 +204,9 @@ export function Session({
   /* The questions filled in by the checkpoint. Only these arrive finished — a
      question the shopper asks after landing here is happening now, and gets
      the pacing every answer gets. */
-  const prefilled = useRef(new Set(from.asked)).current;
+  const prefilled = useRef(
+    new Set(from.asked.filter((id) => id !== from.playing)),
+  ).current;
 
   /* --- How far the conversation has got ---------------------------------- */
   const [stage, setStage] = useState<Stage>(CHECKPOINT_STAGE[start]);
@@ -211,7 +236,7 @@ export function Session({
 
   /** Which piece is open. Undefined means the grid is showing. */
   const [opened, setOpened] = useState<string | undefined>(
-    from.bagged ? perfectFit.pieces[0].id : undefined,
+    from.pieceOpen ? perfectFit.pieces[0].id : undefined,
   );
 
   /** True once the grid has finished arriving, so it can offer suggestions. */
@@ -224,7 +249,7 @@ export function Session({
   const [answered, setAnswered] = useState(true);
 
   /** The piece folds back to a line once it stops being the subject. */
-  const [pieceFolded, setPieceFolded] = useState(from.bagged);
+  const [pieceFolded, setPieceFolded] = useState(from.pieceOpen);
 
   /* --- The bag ------------------------------------------------------------ */
   const [bagCount, setBagCount] = useState(from.bagged ? bag.items.length : 0);

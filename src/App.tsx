@@ -19,6 +19,7 @@ const CHECKPOINTS: Record<string, Checkpoint> = {
   '#session': 'greeting',
   '#vibe': 'vibe',
   '#product': 'product',
+  '#reviews': 'reviews',
   '#cart': 'cart',
   '#checkout': 'checkout',
 };
