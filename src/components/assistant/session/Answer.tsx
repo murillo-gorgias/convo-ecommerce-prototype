@@ -11,6 +11,7 @@ import {
 import { moves, pace } from '../../../motion/motion';
 import { ChevronDownIcon, HeartIcon, SparkIcon, StarIcon, VerifiedIcon } from '../icons';
 import { Bullets, Emphasis, Label, Lines, Said, useAfter } from './parts';
+import { THINKING } from '../thinking/variations';
 
 /**
  * ============================================================================
@@ -138,6 +139,10 @@ export function Answer({
       className="flex w-full flex-col items-start gap-4"
     >
       <Said>{answer.question}</Said>
+
+      {/* The beat between the question and the answer, filled the way every
+          wait in the prototype is filled. */}
+      {part === 'question' && <THINKING />}
 
       <Lines start={reached('summary')} onDone={() => setPart('points')}>
         {answer.lines}

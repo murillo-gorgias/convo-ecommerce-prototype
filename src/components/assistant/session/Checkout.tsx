@@ -4,6 +4,7 @@ import { bag, checkout, confirmation, promotion } from '../../../content/journey
 import { moves, pace } from '../../../motion/motion';
 import { CheckIcon, ChevronDownIcon, VerifiedIcon } from '../icons';
 import { Emphasis, Lines, Said, useAfter } from './parts';
+import { THINKING } from '../thinking/variations';
 import { less, money } from './money';
 
 /**
@@ -42,6 +43,9 @@ export function Checkout({
       className="flex w-full flex-col items-start gap-3"
     >
       <Said>{checkout.command}</Said>
+
+      {/* The assistant takes the beat before replying, and shows it. */}
+      {part === 'said' && <THINKING />}
 
       {/* The summary is said first and the totals follow it. Showing the card
           at the same moment turns the sentence into a caption for it, when the

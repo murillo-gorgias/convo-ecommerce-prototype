@@ -352,9 +352,12 @@ function ConsoleContents({
           )}
         </AnimatePresence>
 
+        {/* The reply loads on the left, like every other thing the assistant
+            says. Centred, it read as a status for the whole panel rather than
+            as the message being written. */}
         <AnimatePresence mode="wait">
           {submitted && (
-            <motion.div key="thinking" {...moves.assistant.contentSwap} className="flex justify-center">
+            <motion.div key="thinking" {...moves.assistant.contentSwap} className="flex justify-start">
               <THINKING />
             </motion.div>
           )}

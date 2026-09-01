@@ -4,6 +4,7 @@ import { promo } from '../../../content/journey';
 import { moves, pace } from '../../../motion/motion';
 import { BagCard } from './Bag';
 import { Lines, Said, useAfter } from './parts';
+import { THINKING } from '../thinking/variations';
 
 /**
  * ============================================================================
@@ -48,6 +49,9 @@ export function Promo({
       className="flex w-full flex-col items-start gap-4"
     >
       <Said>{promo.question}</Said>
+
+      {/* The assistant takes the beat before replying, and shows it. */}
+      {part === 'said' && <THINKING />}
 
       {part !== 'said' && (
         <Lines start onDone={() => setPart('card')}>
