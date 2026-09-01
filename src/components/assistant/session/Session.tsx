@@ -99,6 +99,15 @@ const reached = (stage: Stage, at: Stage) => ORDER.indexOf(stage) >= ORDER.index
 const ALL_ANSWERS = [...answers, ...reviewAnswers];
 const answerFor = (id: string) => ALL_ANSWERS.find((answer) => answer.id === id);
 
+/**
+ * The room the header needs at the top of the thread.
+ *
+ * The header floats over the conversation rather than sitting above it, so the
+ * column reserves this much before its first word. The scroll maths uses the
+ * same number, which is why it is a constant and not a class on its own.
+ */
+const HEADER_CLEARANCE = 104;
+
 /** How long the unchosen images take to clear before the fold begins. */
 const CLEAR_TIME = 280;
 
@@ -542,8 +551,8 @@ export function Session({
             line being typed drift about. */}
         <div
           ref={column}
-          className="flex flex-col items-start gap-8 px-4 pt-[104px]"
-          style={{ paddingBottom: clearance + 24 }}
+          className="flex flex-col items-start gap-8 px-4"
+          style={{ paddingTop: HEADER_CLEARANCE, paddingBottom: clearance + 24 }}
         >
           <Said>{opening.query}</Said>
           <Before done={over.greeting}>
@@ -746,6 +755,31 @@ function useFollowBottom(
 
     let frame = 0;
 
+    /**
+     * Where the thread should sit.
+     *
+     * Normally at its own bottom, which is where the newest thing is. That
+     * works because a section fits on screen, so holding its bottom holds its
+     * question too.
+     *
+     * The vibe check does not fit — eight tiles against a shorter phone — and
+     * for anything that cannot fit, the bottom is the wrong end to hold. It
+     * puts the shopper in the middle of a grid of photographs with the question
+     * scrolled off above them. So a section taller than the viewport is held by
+     * its top instead, level with where the conversation starts, and is read
+     * from its question down.
+     */
+    const restingPlace = () => {
+      const last = content.lastElementChild;
+      if (!last) return view.scrollHeight;
+
+      const box = last.getBoundingClientRect();
+      if (box.height <= view.clientHeight) return view.scrollHeight;
+
+      const top = box.top - view.getBoundingClientRect().top + view.scrollTop;
+      return Math.max(0, top - HEADER_CLEARANCE);
+    };
+
     const follow = () => {
       window.cancelAnimationFrame(frame);
       frame = window.requestAnimationFrame(() => {
@@ -753,7 +787,7 @@ function useFollowBottom(
            with its whole history already in place, and gliding two thousand
            pixels down through it is a journey nobody asked to watch. */
         view.scrollTo({
-          top: view.scrollHeight,
+          top: restingPlace(),
           behavior: !landed.current || prefersReducedMotion() ? 'auto' : 'smooth',
         });
         landed.current = true;
