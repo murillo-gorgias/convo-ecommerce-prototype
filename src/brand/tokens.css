@@ -115,6 +115,18 @@
   --chip: #c5ac9d;
   --chip-border: rgba(140, 90, 60, 0.1);
 
+  /* THE THINKING BUBBLE — the pause between a message and its reply.
+     A pill with a barely-there outline, three dots taking turns, and a black
+     line travelling around the outline's path. */
+  --thinking-outline: rgba(235, 235, 235, 0.8);
+  --thinking-trace: #000000;        /* the line going round */
+  --thinking-dot: #807d7c;          /* a dot waiting its turn */
+  --thinking-dot-lit: #252423;      /* the dot whose turn it is */
+  --thinking-word: #252423;         /* the head of the shimmer */
+  --thinking-word-far: #8b8783;     /* its tail */
+  --thinking-height: 40px;
+  --thinking-radius: 40px;
+
   /* The frosted strip along the bottom that holds the input. */
   --dock-bg: rgba(255, 255, 255, 0.75);
   --dock-border: rgba(255, 255, 255, 0.5);

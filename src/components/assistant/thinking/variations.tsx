@@ -1,321 +1,147 @@
-import { motion, useReducedMotion } from 'motion/react';
-import { easing } from '../../../motion/motion';
+import { ThinkingBubble, type Timing } from './Bubble';
 
 /**
  * ============================================================================
- * THINKING ANIMATIONS — five minimalist motion studies
+ * SIX WAYS TO TIME THE SAME BUBBLE
  * ============================================================================
  *
- * What the assistant shows while it works.
+ * One drawing, six schedules. The design is settled — a pill, three dots, a
+ * sentence, a line going round — so what is being chosen here is pace, not
+ * shape. Each entry below changes only numbers.
  *
- * Each one gives the assistant a restrained physical gesture while it works.
- * The active loader uses jewelry itself rather than a generic progress mark.
- *
- * Each is drawn in ink at the size it appears in the console.
- * Compare them side by side at  /#thinking
- * Pick one by changing `THINKING` at the bottom of this file.
- *
- * The house rule applies to all of them: nothing snaps, nothing bounces,
- * nothing demands attention. This runs for a second or two and then leaves.
+ * They are ordered from calmest to busiest, so scanning the page top to bottom
+ * is itself the comparison.
  */
 
-const BOX = 'relative flex h-12 w-[110px] items-center justify-center text-[var(--ink-soft)]';
+/** The design's own values, before any of them are pushed around. */
+const base: Timing = {
+  dotStep: 0.24,
+  dotStyle: 'chase',
+  dotLift: 0,
+  dotsFor: 2.2,
+  wordsFor: 2.6,
+  shimmer: 2.2,
+  morph: { type: 'spring', stiffness: 220, damping: 30 },
+  lap: 3.2,
+  traceLength: 0.18,
+  traces: 1,
+  traceDirection: 1,
+};
 
-/** The travelling light: one short dash chasing its way along the path. */
-const DASH = '14 150';
+const timings: Record<string, Timing> = {
+  /* Everything slow. One lap of the outline takes four seconds, the dots hand
+     off lazily, and a sentence sits long enough to be read twice. */
+  patient: {
+    ...base,
+    dotStep: 0.34,
+    dotsFor: 2.8,
+    wordsFor: 3.4,
+    shimmer: 3,
+    lap: 4.4,
+    traceLength: 0.16,
+  },
 
-/* ==========================================================================
- * 1. ARC
- * A straight line bows into a half circle, flattens, then bows the other
- * way. The most literal reading of the direction.
- * ========================================================================== */
+  /* The design as drawn. A steady chase inside, one segment outside. */
+  measured: base,
 
-export function Arc() {
-  const flat = 'M8 24 C32 24 44 24 55 24 C66 24 78 24 102 24';
-  const over = 'M8 24 C8 2 32 2 55 2 C78 2 102 2 102 24';
-  const under = 'M8 24 C8 46 32 46 55 46 C78 46 102 46 102 24';
+  /* The dots breathe as one instead of taking turns, and the trace is longer
+     and slower — the whole thing reads as one object pulsing rather than
+     several parts working. */
+  breathing: {
+    ...base,
+    dotStyle: 'breathe',
+    dotStep: 0.62,
+    lap: 4,
+    traceLength: 0.3,
+    shimmer: 2.6,
+  },
 
-  return (
-    <div className={BOX}>
-      <svg width="110" height="48" viewBox="0 0 110 48" fill="none">
-        <motion.path
-          d={flat}
-          initial={{ d: flat }}
-          stroke="currentColor"
-          strokeWidth="1.2"
-          strokeLinecap="round"
-          strokeOpacity="0.18"
-          animate={{ d: [flat, over, flat, under, flat] }}
-          transition={{ duration: 4.4, ease: easing.refined, repeat: Infinity }}
-        />
-        <motion.path
-          d={flat}
-          initial={{ d: flat }}
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeDasharray={DASH}
-          animate={{
-            d: [flat, over, flat, under, flat],
-            strokeDashoffset: [164, 0, -164, -328, -492],
-          }}
-          transition={{ duration: 4.4, ease: easing.even, repeat: Infinity }}
-        />
-      </svg>
-    </div>
-  );
-}
+  /* Each dot rises as it lights, so the row ripples. The sentence comes round
+     sooner, and the light through it is quicker. */
+  lifted: {
+    ...base,
+    dotStyle: 'wave',
+    dotStep: 0.2,
+    dotLift: 2,
+    dotsFor: 1.8,
+    wordsFor: 2.4,
+    shimmer: 1.7,
+    lap: 3,
+  },
 
-/* ==========================================================================
- * 2. TWIST CHAIN
- * Alternating oval links draw themselves into an unmistakable jewelry chain,
- * then retrace from the opposite end before beginning again.
- * ========================================================================== */
+  /* Two segments on opposite sides of the outline, going round together. Twice
+     as much happening on the edge, with the inside left alone. */
+  twin: {
+    ...base,
+    traces: 2,
+    traceLength: 0.14,
+    lap: 3.8,
+    dotsFor: 2.4,
+    wordsFor: 2.8,
+  },
 
-export function TwistChain() {
-  const reduced = useReducedMotion();
-  const links = [
-    { x: 18, angle: -28 },
-    { x: 36, angle: 28 },
-    { x: 54, angle: -28 },
-    { x: 72, angle: 28 },
-    { x: 90, angle: -28 },
-  ];
-
-  return (
-    <div className={BOX}>
-      <svg
-        width="110"
-        height="48"
-        viewBox="0 0 110 48"
-        fill="none"
-        role="img"
-        aria-label="Thinking"
-        className="text-[var(--ink-soft)]"
-      >
-        {links.map((link, index) => {
-          const reveal = 0.06 + index * 0.07;
-          const hide = 0.92 - index * 0.05;
-
-          return (
-            <g key={link.x} transform={`rotate(${link.angle} ${link.x} 24)`}>
-              <motion.ellipse
-                cx={link.x}
-                cy="24"
-                rx="13"
-                ry="6"
-                initial={reduced ? false : { pathLength: 0, opacity: 0 }}
-                animate={reduced ? { pathLength: 1, opacity: 0.72 } : {
-                  pathLength: [0, 0, 1, 1, 0],
-                  opacity: [0, 0, 1, 1, 0],
-                }}
-                transition={{
-                  duration: 3.4,
-                  ease: easing.even,
-                  times: [0, reveal, reveal + 0.18, hide, 1],
-                  repeat: Infinity,
-                }}
-                stroke="currentColor"
-                strokeWidth="1.35"
-                strokeLinecap="round"
-              />
-            </g>
-          );
-        })}
-      </svg>
-    </div>
-  );
-}
+  /* Quick everywhere, and the trace runs the other way. The bubble snaps
+     between widths rather than settling into them. */
+  brisk: {
+    ...base,
+    dotStep: 0.16,
+    dotsFor: 1.4,
+    wordsFor: 2,
+    shimmer: 1.3,
+    morph: { duration: 0.26 },
+    lap: 1.9,
+    traceLength: 0.22,
+    traceDirection: -1,
+  },
+};
 
 /* ==========================================================================
- * 3. RIBBON
- * The line runs flat, gathers into a wave, and settles flat again — tilting
- * as it goes, so it reads as a length of chain drawn through a hand.
- * ========================================================================== */
-
-export function Ribbon() {
-  const flat = 'M8 24 C26 24 40 24 55 24 C70 24 84 24 102 24';
-  const wave = 'M8 24 C26 4 40 44 55 24 C70 4 84 44 102 24';
-  const deep = 'M8 24 C26 44 40 4 55 24 C70 44 84 4 102 24';
-
-  return (
-    <div className={BOX}>
-      <motion.svg
-        width="110"
-        height="48"
-        viewBox="0 0 110 48"
-        fill="none"
-        animate={{ rotate: [0, 5, -5, 0] }}
-        transition={{ duration: 5.2, ease: easing.even, repeat: Infinity }}
-      >
-        <motion.path
-          d={flat}
-          initial={{ d: flat }}
-          stroke="currentColor"
-          strokeWidth="1.2"
-          strokeLinecap="round"
-          strokeOpacity="0.16"
-          animate={{ d: [flat, wave, deep, wave, flat] }}
-          transition={{ duration: 3.6, ease: easing.even, repeat: Infinity }}
-        />
-        <motion.path
-          d={flat}
-          initial={{ d: flat }}
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeDasharray={DASH}
-          animate={{
-            d: [flat, wave, deep, wave, flat],
-            strokeDashoffset: [164, 0, -164, -328, -492],
-          }}
-          transition={{ duration: 3.6, ease: easing.even, repeat: Infinity }}
-        />
-      </motion.svg>
-    </div>
-  );
-}
-
-/* ==========================================================================
- * 4. PENDULUM
- * A short arc swinging on its centre while its curve deepens and eases.
- * The most restrained — nothing crosses the screen, it only turns.
- * ========================================================================== */
-
-export function Pendulum() {
-  const shallow = 'M26 30 C40 20 70 20 84 30';
-  const deep = 'M26 36 C40 6 70 6 84 36';
-
-  return (
-    <div className={BOX}>
-      <motion.svg
-        width="110"
-        height="48"
-        viewBox="0 0 110 48"
-        fill="none"
-        style={{ originX: '55px', originY: '24px' }}
-        animate={{ rotate: [-36, 36, -36] }}
-        transition={{ duration: 3.4, ease: easing.refined, repeat: Infinity }}
-      >
-        <motion.path
-          d={shallow}
-          initial={{ d: shallow }}
-          stroke="currentColor"
-          strokeWidth="1.3"
-          strokeLinecap="round"
-          strokeOpacity="0.2"
-          animate={{ d: [shallow, deep, shallow] }}
-          transition={{ duration: 1.7, ease: easing.even, repeat: Infinity }}
-        />
-        <motion.path
-          d={shallow}
-          initial={{ d: shallow }}
-          stroke="currentColor"
-          strokeWidth="1.6"
-          strokeLinecap="round"
-          strokeDasharray="12 90"
-          animate={{ d: [shallow, deep, shallow], strokeDashoffset: [102, 0] }}
-          transition={{ duration: 1.7, ease: easing.even, repeat: Infinity }}
-        />
-      </motion.svg>
-    </div>
-  );
-}
-
-/* ==========================================================================
- * 5. LOOP
- * The line folds over itself into a knot, turns, then unfolds. The most
- * sculptural, and the closest to the brand's own interlocking forms.
- * ========================================================================== */
-
-export function Loop() {
-  const straight = 'M10 24 C30 24 44 24 55 24 C66 24 80 24 100 24';
-  const knot = 'M10 24 C34 24 33 7 55 7 C77 7 76 41 55 41 C34 41 33 24 100 24';
-
-  return (
-    <div className={BOX}>
-      <motion.svg
-        width="110"
-        height="48"
-        viewBox="0 0 110 48"
-        fill="none"
-        animate={{ rotate: [0, 180, 360] }}
-        transition={{ duration: 6.4, ease: easing.refined, repeat: Infinity }}
-      >
-        <motion.path
-          d={straight}
-          initial={{ d: straight }}
-          stroke="currentColor"
-          strokeWidth="1.2"
-          strokeLinecap="round"
-          strokeOpacity="0.16"
-          animate={{ d: [straight, knot, knot, straight] }}
-          transition={{
-            duration: 4.2,
-            ease: easing.refined,
-            times: [0, 0.35, 0.65, 1],
-            repeat: Infinity,
-          }}
-        />
-        <motion.path
-          d={straight}
-          initial={{ d: straight }}
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeDasharray={DASH}
-          animate={{
-            d: [straight, knot, knot, straight],
-            strokeDashoffset: [200, 0, -200, -400],
-          }}
-          transition={{
-            duration: 4.2,
-            ease: easing.even,
-            times: [0, 0.35, 0.65, 1],
-            repeat: Infinity,
-          }}
-        />
-      </motion.svg>
-    </div>
-  );
-}
-
-/* ==========================================================================
- * THE SET
+ * THE ROSTER
  * ========================================================================== */
 
 export const thinkingVariations = [
   {
-    id: 'arc',
-    name: 'Arc',
-    note: 'A straight line bows into a half circle, flattens, then bows the other way.',
-    Component: Arc,
+    id: 'patient',
+    name: 'Patient',
+    note: 'Everything slower. A four-second lap, an unhurried hand-off between dots, and a sentence that sits long enough to read twice.',
+    Component: () => <ThinkingBubble timing={timings.patient} />,
   },
   {
-    id: 'twist-chain',
-    name: 'Twist chain',
-    note: 'Alternating links drawing themselves into a jewelry chain.',
-    Component: TwistChain,
+    id: 'measured',
+    name: 'Measured',
+    note: 'The design as drawn. One dot lit at a time, one segment going round, a three-second lap.',
+    Component: () => <ThinkingBubble timing={timings.measured} />,
   },
   {
-    id: 'ribbon',
-    name: 'Ribbon',
-    note: 'A length of chain gathering into a wave and settling flat, tilting as it goes.',
-    Component: Ribbon,
+    id: 'breathing',
+    name: 'Breathing',
+    note: 'The three dots move as one rather than taking turns, against a longer, slower trace. Reads as a single thing pulsing.',
+    Component: () => <ThinkingBubble timing={timings.breathing} />,
   },
   {
-    id: 'pendulum',
-    name: 'Pendulum',
-    note: 'A short arc swinging on its centre while its curve deepens and eases.',
-    Component: Pendulum,
+    id: 'lifted',
+    name: 'Lifted',
+    note: 'Each dot rises as it lights, so the row ripples. Sentences come round sooner and the light through them is quicker.',
+    Component: () => <ThinkingBubble timing={timings.lifted} />,
   },
   {
-    id: 'loop',
-    name: 'Loop',
-    note: 'The line folds into a knot, turns, then unfolds.',
-    Component: Loop,
+    id: 'twin',
+    name: 'Twin trace',
+    note: 'Two segments on opposite sides of the outline. Twice as much happening on the edge, the inside unchanged.',
+    Component: () => <ThinkingBubble timing={timings.twin} />,
+  },
+  {
+    id: 'brisk',
+    name: 'Brisk',
+    note: 'Quick everywhere, trace running the other way, and the bubble snapping between widths instead of settling.',
+    Component: () => <ThinkingBubble timing={timings.brisk} />,
   },
 ] as const;
 
-/** The variation the console currently uses. */
-export const THINKING = TwistChain;
+/**
+ * The variation the console currently uses.
+ *
+ * `measured` is the design's own timing, and stays the default until the
+ * comparison at `/#thinking` settles on another.
+ */
+export const THINKING = () => <ThinkingBubble timing={timings.measured} />;

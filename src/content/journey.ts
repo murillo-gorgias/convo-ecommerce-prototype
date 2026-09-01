@@ -111,6 +111,27 @@ export const opening = {
 } as const;
 
 /* ==========================================================================
+ * WHAT THE ASSISTANT SAYS WHILE IT WORKS
+ *
+ * The sentences that alternate with the three dots in the thinking bubble.
+ *
+ * Each names something being done, in the present, in the assistant's own
+ * voice. Dots alone say it is busy; a sentence says what it is busy with,
+ * which is the difference between being kept waiting and being kept informed.
+ *
+ * Short enough to be read at a glance, because none of them is up for long.
+ * ========================================================================== */
+
+export const thinkingWords = [
+  'Browsing fantastic options...',
+  'Reading what buyers said...',
+  'Checking what suits you...',
+  'Pulling the summer edit...',
+  'Matching your neckline...',
+  'Finding the right length...',
+] as const;
+
+/* ==========================================================================
  * THE SECTIONS, IN ORDER
  * ========================================================================== */
 

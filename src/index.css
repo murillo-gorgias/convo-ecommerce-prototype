@@ -28,3 +28,25 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ==========================================================================
+ * THE THINKING BUBBLE
+ *
+ * Two loops that CSS runs better than JavaScript does, because neither needs
+ * to know anything about React's state: the light travelling through a
+ * sentence, and the segment travelling around the outline.
+ *
+ * The trace works on `stroke-dashoffset` against a path declared with
+ * `pathLength: 1`, so one full lap is always an offset of 1 whatever width the
+ * bubble happens to be.
+ * ========================================================================== */
+
+@keyframes thinking-shimmer {
+  from { background-position: 160% 0; }
+  to   { background-position: -60% 0; }
+}
+
+@keyframes thinking-trace {
+  from { stroke-dashoffset: 0; }
+  to   { stroke-dashoffset: -1; }
+}
