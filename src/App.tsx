@@ -1,9 +1,8 @@
-import { Fragment, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Storefront } from './components/store/Storefront';
 import { Assistant } from './components/assistant/Assistant';
 import { ThinkingGallery } from './components/assistant/thinking/Gallery';
 import { Session, type Checkpoint } from './components/assistant/session/Session';
-import { Checkpoints } from './components/Checkpoints';
 
 /**
  * The prototype is presented inside a phone-sized frame so it reads correctly
@@ -27,37 +26,22 @@ export default function App() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [hash, setHash] = useState(window.location.hash);
 
-  /* Bumped when a checkpoint is picked while already on it, so the section
-     mounts again and plays from the top. */
-  const [run, setRun] = useState(0);
-
   useEffect(() => {
     const onHash = () => setHash(window.location.hash);
     window.addEventListener('hashchange', onHash);
     return () => window.removeEventListener('hashchange', onHash);
   }, []);
 
-  const rail = <Checkpoints hash={hash} onReplay={() => setRun((at) => at + 1)} />;
-
   // A review surface for comparing thinking animations, not part of the journey.
-  if (hash === '#thinking') {
-    return (
-      <>
-        {rail}
-        <ThinkingGallery key={run} />
-      </>
-    );
-  }
+  if (hash === '#thinking') return <ThinkingGallery />;
 
   // Checkpoints into the guided session, for review. The journey normally
   // reaches the session through the storefront and signing in; these skip
   // straight to one part of it, with everything before that point already
   // answered, so a single section can be watched without replaying the rest.
   const checkpoint = CHECKPOINTS[hash];
-
-  return (
-    <>
-      {rail}
+  if (checkpoint) {
+    return (
       <div className="grid min-h-dvh place-items-center bg-[#e9e6e1] p-6">
         <div
           className="relative overflow-hidden rounded-[44px] bg-[var(--paper)] shadow-[0_30px_90px_rgba(0,0,0,0.22)] ring-1 ring-black/10"
@@ -66,21 +50,29 @@ export default function App() {
             height: 'min(var(--viewport-height), calc(100dvh - 48px))',
           }}
         >
-          {checkpoint ? (
-            <Session
-              key={`${hash}-${run}`}
-              start={checkpoint}
-              onCollapse={() => undefined}
-              onClose={() => undefined}
-            />
-          ) : (
-            <Fragment key={run}>
-              <Storefront scrollRef={scrollRef} />
-              <Assistant scrollRef={scrollRef} />
-            </Fragment>
-          )}
+          <Session
+            key={hash}
+            start={checkpoint}
+            onCollapse={() => undefined}
+            onClose={() => undefined}
+          />
         </div>
       </div>
-    </>
+    );
+  }
+
+  return (
+    <div className="grid min-h-dvh place-items-center bg-[#e9e6e1] p-6">
+      <div
+        className="relative overflow-hidden rounded-[44px] bg-[var(--paper)] shadow-[0_30px_90px_rgba(0,0,0,0.22)] ring-1 ring-black/10"
+        style={{
+          width: 'var(--viewport-width)',
+          height: 'min(var(--viewport-height), calc(100dvh - 48px))',
+        }}
+      >
+        <Storefront scrollRef={scrollRef} />
+        <Assistant scrollRef={scrollRef} />
+      </div>
+    </div>
   );
 }
