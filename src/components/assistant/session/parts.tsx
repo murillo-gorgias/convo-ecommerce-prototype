@@ -305,12 +305,18 @@ export function Bullets({
   );
 }
 
-/** The editorial serif eyebrow that opens a section. */
+/**
+ * The editorial serif eyebrow that opens a section.
+ *
+ * `normal-case` is deliberate. The eyebrow prints exactly as the copy is
+ * written, so a section can be named "The perfect fit" and read that way.
+ * Casing is a copy decision, not a styling one.
+ */
 export function Label({ children }: { children: string }) {
   return (
     <motion.p
       {...moves.session.label}
-      className="w-full [font-family:var(--font-serif)] text-[length:var(--type-eyebrow-size)] font-[var(--type-eyebrow-weight)] lowercase leading-[var(--type-eyebrow-line)] text-black"
+      className="w-full [font-family:var(--font-serif)] text-[length:var(--type-eyebrow-size)] font-[var(--type-eyebrow-weight)] normal-case leading-[var(--type-eyebrow-line)] text-black"
     >
       {children}
     </motion.p>

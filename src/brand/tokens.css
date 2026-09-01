@@ -126,9 +126,9 @@
   --type-label-tracking: 0.96px;
   --type-said-line: 21px;
 
-  /* The eyebrow that opens a section — "vibe check", "sizing". Set in the
-     editorial serif, lower case, large enough to read as a title rather than
-     a caption. */
+  /* The eyebrow that opens a section — "Vibe check", "Sizing". Set in the
+     editorial serif, large enough to read as a title rather than a caption,
+     and printed exactly as the copy is written. */
   --type-eyebrow-size: 20px;
   --type-eyebrow-weight: 400;
   --type-eyebrow-line: 26px;
